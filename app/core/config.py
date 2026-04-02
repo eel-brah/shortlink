@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     HASHIDS_SALT: str
 
-    # REDIS_URL: str = "redis://localhost:6379"
+    REDIS_URL: str = "redis://localhost:6379"
 
     # SECRET_KEY: str
     # ALGORITHM: str = "HS256"
