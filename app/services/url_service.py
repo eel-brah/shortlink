@@ -1,7 +1,11 @@
+from fastapi import HTTPException
+from pydantic import HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from app.models.url import URL
 
+from app.schemas.url import URLUpdate
+from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
 
 
@@ -25,3 +29,56 @@ async def get_url(db: AsyncSession, code: str):
         select(URL).where(URL.short_code == code)
     )
     return result.scalar_one_or_none()
+
+
+#TODO: dont raise exeptions here
+async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
+    result = await db.execute(
+        select(URL).where(URL.id == url_id)
+    )
+    url = result.scalar_one_or_none()
+
+    if not url:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    if data.original_url is None and data.is_active is None and data.custom_alias is None:
+        return url
+
+    if data.original_url:
+        url.original_url = str(data.original_url)
+
+    if data.is_active is not None:
+        url.is_active = data.is_active
+
+    #TODO: updating to the same alias + validate alias
+    if data.custom_alias:
+        existing = await db.execute(
+            select(URL).where(URL.short_code == data.custom_alias)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Alias already taken")
+
+        await delete_cached_url(url.short_code)
+
+        url.short_code = data.custom_alias
+
+    await db.commit()
+    await db.refresh(url)
+
+    await set_cached_url(url.short_code, url.original_url)
+
+    return url
+
+async def delete_url(db, url_id: int):
+    result = await db.execute(
+        select(URL).where(URL.id == url_id)
+    )
+    url = result.scalar_one_or_none()
+    if not url:
+       return None 
+
+    #TODO: soft delete to keep analytics/history
+    await db.delete(url)
+    await db.commit()
+
+    return url

@@ -8,3 +8,6 @@ async def get_cached_url(code: str) -> str | None:
 
 async def set_cached_url(code: str, original_url: str):
     await redis.set(code, original_url, ex=DEFAULT_TTL)
+
+async def delete_cached_url(code: str):
+    await redis.delete(code)
