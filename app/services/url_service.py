@@ -9,13 +9,20 @@ from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
 
 
-async def create_short_url(db: AsyncSession, original_url: str):
+async def create_short_url(db: AsyncSession, original_url: str, custom_alias: str | None):
+    if custom_alias:
+        existing = await db.execute(
+            select(URL).where(URL.short_code == custom_alias)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Alias already taken")
+
     url = URL(original_url=original_url)
 
     db.add(url)
     await db.flush()
 
-    url.short_code = encode_id(url.id)
+    url.short_code = custom_alias or encode_id(url.id)
 
     await db.commit()
     await db.refresh(url)
@@ -24,24 +31,23 @@ async def create_short_url(db: AsyncSession, original_url: str):
 
 
 async def get_url(db: AsyncSession, code: str):
-    result = await db.execute(
-        # is_active
-        select(URL).where(URL.short_code == code)
-    )
+    result = await db.execute(select(URL).where(URL.short_code == code, URL.is_active))
     return result.scalar_one_or_none()
 
 
-#TODO: dont raise exeptions here
+# TODO: dont raise exeptions here
 async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
-    result = await db.execute(
-        select(URL).where(URL.id == url_id)
-    )
+    result = await db.execute(select(URL).where(URL.id == url_id))
     url = result.scalar_one_or_none()
 
     if not url:
         raise HTTPException(status_code=404, detail="URL not found")
 
-    if data.original_url is None and data.is_active is None and data.custom_alias is None:
+    if (
+        data.original_url is None
+        and data.is_active is None
+        and data.custom_alias is None
+    ):
         return url
 
     if data.original_url:
@@ -50,8 +56,7 @@ async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
     if data.is_active is not None:
         url.is_active = data.is_active
 
-    #TODO: updating to the same alias + validate alias
-    if data.custom_alias:
+    if data.custom_alias and data.custom_alias != url.short_code:
         existing = await db.execute(
             select(URL).where(URL.short_code == data.custom_alias)
         )
@@ -65,19 +70,21 @@ async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
     await db.commit()
     await db.refresh(url)
 
-    await set_cached_url(url.short_code, url.original_url)
+    if url.is_active:
+        await set_cached_url(url.short_code, url.original_url)
+    else:
+        await delete_cached_url(url.short_code)
 
     return url
 
+
 async def delete_url(db, url_id: int):
-    result = await db.execute(
-        select(URL).where(URL.id == url_id)
-    )
+    result = await db.execute(select(URL).where(URL.id == url_id))
     url = result.scalar_one_or_none()
     if not url:
-       return None 
+        return None
 
-    #TODO: soft delete to keep analytics/history
+    # TODO: soft delete to keep analytics/history
     await db.delete(url)
     await db.commit()
 
