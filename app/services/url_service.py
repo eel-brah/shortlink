@@ -1,7 +1,6 @@
 from fastapi import HTTPException
-from pydantic import HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, select, update
+from sqlalchemy import select
 from app.models.url import URL
 
 from app.schemas.url import URLUpdate
@@ -9,11 +8,11 @@ from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
 
 
-async def create_short_url(db: AsyncSession, original_url: str, custom_alias: str | None):
+async def create_short_url(
+    db: AsyncSession, original_url: str, custom_alias: str | None
+):
     if custom_alias:
-        existing = await db.execute(
-            select(URL).where(URL.short_code == custom_alias)
-        )
+        existing = await db.execute(select(URL).where(URL.short_code == custom_alias))
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Alias already taken")
 

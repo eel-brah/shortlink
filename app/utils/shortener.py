@@ -3,7 +3,7 @@ from app.core.config import settings
 import string
 
 hashids = Hashids(
-    salt=settings.HASHIDS_SALT,
+    salt=str(settings.HASHIDS_SALT),
     min_length=6
 )
 

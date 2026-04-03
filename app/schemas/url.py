@@ -1,5 +1,11 @@
-from typing import Optional, Annotated
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from typing import Annotated
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+)
 
 
 RESERVED = {"admin", "api", "docs", "redoc"}
@@ -17,28 +23,25 @@ AliasType = Annotated[
 ]
 
 
-class AliasValidatorMixin:
-    @field_validator("custom_alias")
-    @classmethod
-    def validate_alias(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return value
-
-        if value in RESERVED:
-            raise ValueError("Alias is reserved")
-
+def validate_alias(value: str | None) -> str | None:
+    if value is None:
         return value
 
+    if value in RESERVED:
+        raise ValueError("Alias is reserved")
 
-class URLCreate(AliasValidatorMixin, BaseModel):
+    return value
+
+
+class URLCreate(BaseModel):
     url: HttpUrl
-    custom_alias: Optional[AliasType] = None
+    custom_alias: Annotated[AliasType | None, AfterValidator(validate_alias)] = None
 
 
-class URLUpdate(AliasValidatorMixin, BaseModel):
-    original_url: Optional[HttpUrl] = None
-    custom_alias: Optional[AliasType] = None
-    is_active: Optional[bool] = None
+class URLUpdate(BaseModel):
+    original_url: HttpUrl | None = None
+    custom_alias: Annotated[AliasType | None, AfterValidator(validate_alias)] = None
+    is_active: bool | None = None
 
 
 class URLResponse(BaseModel):
