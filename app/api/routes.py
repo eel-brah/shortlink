@@ -14,6 +14,8 @@ from app.services.url_service import create_short_url, delete_url, get_url, upda
 
 router = APIRouter()
 
+#TODO: Consistent Error Format
+#TODO: Data base errors
 
 @router.post("/shorten", response_model=URLResponse)
 async def shorten(data: URLCreate, db: AsyncSession = Depends(get_db)):
@@ -33,11 +35,7 @@ async def redirect(
     cached_url = await get_cached_url(code)
     if cached_url:
         return cached_url
-
     url = await get_url(db, code)
-    if not url:
-        raise HTTPException(status_code=404, detail="Not found")
-
     await set_cached_url(code, url.original_url)
     return url.original_url
 
@@ -55,9 +53,6 @@ async def update_url_endpoint(
 @router.delete("/urls/{url_id}", response_model=URLResponse)
 async def delete_url_endpoint(url_id: int, db: AsyncSession = Depends(get_db)):
     url = await delete_url(db, url_id)
-    if not url:
-        raise HTTPException(status_code=404, detail="URL not found")
-
     await delete_cached_url(url.short_code)
     return url
 

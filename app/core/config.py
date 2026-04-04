@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: PostgresDsn = Field(repr=False)
     REDIS_URL: RedisDsn = Field(repr=False)
+    REDIS_TIMEOUT: float = 1.0
 
     HASHIDS_SALT: SecretStr
 

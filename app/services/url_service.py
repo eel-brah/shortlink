@@ -1,11 +1,21 @@
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.url import URL
 
+from ..core.exceptions.base import ConflictError, NotFoundError
+from app.models.url import URL
 from app.schemas.url import URLUpdate
 from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
+
+
+async def safe_commit(db: AsyncSession):
+    from sqlalchemy.exc import IntegrityError
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise ConflictError("Database conflict")
 
 
 async def create_short_url(
@@ -14,7 +24,7 @@ async def create_short_url(
     if custom_alias:
         existing = await db.execute(select(URL).where(URL.short_code == custom_alias))
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Alias already taken")
+            raise ConflictError(detail="Alias already taken")
 
     url = URL(original_url=original_url)
 
@@ -23,7 +33,7 @@ async def create_short_url(
 
     url.short_code = custom_alias or encode_id(url.id)
 
-    await db.commit()
+    await safe_commit(db)
     await db.refresh(url)
 
     return url
@@ -31,16 +41,18 @@ async def create_short_url(
 
 async def get_url(db: AsyncSession, code: str):
     result = await db.execute(select(URL).where(URL.short_code == code, URL.is_active))
-    return result.scalar_one_or_none()
+    url = result.scalar_one_or_none()
+    if not url:
+        raise NotFoundError(detail="URL not found")
+    return url
 
 
-# TODO: dont raise exeptions here
 async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
     result = await db.execute(select(URL).where(URL.id == url_id))
     url = result.scalar_one_or_none()
 
     if not url:
-        raise HTTPException(status_code=404, detail="URL not found")
+        raise NotFoundError(detail="URL not found")
 
     if (
         data.original_url is None
@@ -60,13 +72,13 @@ async def update_url(db: AsyncSession, url_id: int, data: URLUpdate):
             select(URL).where(URL.short_code == data.custom_alias)
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Alias already taken")
+            raise ConflictError(detail="Alias already taken")
 
         await delete_cached_url(url.short_code)
 
         url.short_code = data.custom_alias
 
-    await db.commit()
+    await safe_commit(db)
     await db.refresh(url)
 
     if url.is_active:
@@ -81,10 +93,10 @@ async def delete_url(db, url_id: int):
     result = await db.execute(select(URL).where(URL.id == url_id))
     url = result.scalar_one_or_none()
     if not url:
-        return None
+        raise NotFoundError(detail="URL not found")
 
     # TODO: soft delete to keep analytics/history
     await db.delete(url)
-    await db.commit()
+    await safe_commit(db)
 
     return url

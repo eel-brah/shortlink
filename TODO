@@ -1,0 +1,2 @@
+Testing: Write tests that expect specific BaseAppException subclasses. Mock DB to raise IntegrityError and assert the right HTTP status.
+Rate Limiting / Security: For /shorten and redirect, consider rate limits to prevent abuse. Add proper CORS/headers in error responses if needed.

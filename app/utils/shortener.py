@@ -8,11 +8,19 @@ hashids = Hashids(
 )
 
 def encode_id(id: int) -> str:
+    if id < 0:
+        raise ValueError("ID must be positive")
     return hashids.encode(id)
 
 def decode_code(code: str) -> int | None:
-    decoded = hashids.decode(code)
-    return decoded[0] if decoded else None
+    if not code:
+        return None
+
+    try:
+        decoded = hashids.decode(code)
+        return decoded[0] if decoded else None
+    except Exception:
+        return None
 
 
 BASE62 = string.digits + string.ascii_letters
