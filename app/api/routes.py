@@ -14,8 +14,9 @@ from app.services.url_service import create_short_url, delete_url, get_url, upda
 
 router = APIRouter()
 
-#TODO: Consistent Error Format
-#TODO: Data base errors
+# TODO: Consistent Error Format
+# TODO: Data base errors
+
 
 @router.post("/shorten", response_model=URLResponse)
 async def shorten(data: URLCreate, db: AsyncSession = Depends(get_db)):
