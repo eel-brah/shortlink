@@ -29,7 +29,7 @@ def register_exception_handlers(app):
         logger.warning(f"Validation error: {exc.errors()}")
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors(), "body": exc.body},  # TODO: remove body
+            content={"detail": exc.errors()},
         )
 
     @app.exception_handler(Exception)

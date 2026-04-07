@@ -1,9 +1,10 @@
+from pydantic_core.core_schema import none_schema
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from ..core.exceptions.base import ConflictError, NotFoundError
 from app.models.url import URL
-from app.schemas.url import URLUpdate
+from app.schemas.url import CUSTOM_ALIAS_MIN, RESERVED, URLUpdate
 from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
 
@@ -100,3 +101,11 @@ async def delete_url(db, url_id: int):
     await safe_commit(db)
 
     return url
+
+
+async def is_alias_available(db, alias: str):
+    alias = alias.strip()
+    if alias in RESERVED or len(alias) < CUSTOM_ALIAS_MIN:
+        return {"available": False}
+    result = await db.execute(select(URL.id).where(URL.short_code == alias))
+    return result.scalar_one_or_none() is None
