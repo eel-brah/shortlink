@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.exceptions.base import NotFoundError
 from app.schemas.url import (
     CUSTOM_ALIAS_MAX,
     CUSTOM_ALIAS_MIN,
@@ -10,8 +11,13 @@ from app.schemas.url import (
     URLResponse,
     URLUpdate,
 )
-from app.services.cache_service import delete_cached_url, get_cached_url, set_cached_url
+from app.services.cache_service import (
+    delete_cached_url,
+    get_cached_url,
+    set_cached_url,
+)
 from app.services.url_service import (
+    compute_ttl,
     create_short_url,
     delete_url,
     get_url,
@@ -20,9 +26,6 @@ from app.services.url_service import (
 )
 
 router = APIRouter()
-
-# TODO: Consistent Error Format
-# TODO: Data base errors
 
 
 @router.get("/check-alias", response_model=AliasCheckResponse)
@@ -43,7 +46,7 @@ async def check_alias(
 
 @router.post("/shorten", response_model=URLResponse)
 async def shorten(data: URLCreate, db: AsyncSession = Depends(get_db)):
-    url = await create_short_url(db, str(data.url), data.custom_alias)
+    url = await create_short_url(db, str(data.url), data.custom_alias, data.expires_at)
     return url
 
 
@@ -60,7 +63,12 @@ async def redirect(
     if cached_url:
         return cached_url
     url = await get_url(db, code)
-    await set_cached_url(code, url.original_url)
+
+    ttl = compute_ttl(url.expires_at)
+    if ttl == 0:
+        raise NotFoundError("URL expired")
+    await set_cached_url(code, url.original_url, ttl)
+
     return url.original_url
 
 

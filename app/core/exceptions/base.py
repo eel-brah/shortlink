@@ -11,6 +11,9 @@ class NotFoundError(BaseAppException):
     status_code = 404
     detail = "Resource not found"
 
+class GoneError(BaseAppException):
+    status_code = 410
+    detail = "Resource not availability"
 
 class ConflictError(BaseAppException):
     status_code = 409 
