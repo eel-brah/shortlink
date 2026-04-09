@@ -3,7 +3,7 @@ from app.core.config import settings
 import string
 
 hashids = Hashids(
-    salt=str(settings.HASHIDS_SALT),
+    salt=settings.HASHIDS_SALT.get_secret_value(),
     min_length=6
 )
 

@@ -1,11 +1,13 @@
-from sqlalchemy import DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.user import User
 from ..db.base import Base
 
 from datetime import datetime
 
 
-class URL(Base):
+class Url(Base):
     __tablename__ = "urls"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -18,3 +20,7 @@ class URL(Base):
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    user: Mapped[User | None] = relationship(User, backref="urls")

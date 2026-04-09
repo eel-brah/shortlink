@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated
 from pydantic import (
     AfterValidator,
@@ -8,7 +8,7 @@ from pydantic import (
     HttpUrl,
 )
 
-from app.utils.utils import date_now
+from ..utils.utils import date_now
 
 
 RESERVED = {"admin", "api", "docs", "redoc"}
@@ -42,20 +42,20 @@ def validate_expiration(value):
     return value
 
 
-class URLCreate(BaseModel):
+class UrlCreate(BaseModel):
     url: HttpUrl
     custom_alias: Annotated[AliasType | None, AfterValidator(validate_alias)] = None
     expires_at: Annotated[datetime | None, AfterValidator(validate_expiration)] = None
 
 
-class URLUpdate(BaseModel):
+class UrlUpdate(BaseModel):
     original_url: HttpUrl | None = None
     custom_alias: Annotated[AliasType | None, AfterValidator(validate_alias)] = None
     is_active: bool | None = None
     expires_at: Annotated[datetime | None, AfterValidator(validate_expiration)] = None
 
 
-class URLResponse(BaseModel):
+class UrlResponse(BaseModel):
     id: int
     original_url: str
     short_code: str
