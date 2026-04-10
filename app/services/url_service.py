@@ -1,11 +1,18 @@
 from datetime import datetime
+import logging
+from fastapi import BackgroundTasks
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import func, select, update
+
+from app.core.exceptions.handlers import logger
+from app.db.session import AsyncSessionLocal
 
 from ..services.utils import safe_commit
 from app.utils.utils import date_now
 
-from ..core.exceptions.base import ConflictError, NotFoundError
+from ..core.exceptions.base import ConflictError, ForbiddenError, NotFoundError
 from app.models.url import Url
 from app.schemas.url import CUSTOM_ALIAS_MIN, RESERVED, UrlUpdate
 from app.services.cache_service import delete_cached_url, set_cached_url
@@ -20,7 +27,7 @@ async def create_short_url(
     custom_alias: str | None,
     expires_at: datetime | None,
     user_id: int | None = None,
-):
+) -> Url:
     if custom_alias:
         existing = await db.execute(select(Url).where(Url.short_code == custom_alias))
         if existing.scalar_one_or_none():
@@ -39,22 +46,70 @@ async def create_short_url(
     return url
 
 
-async def get_url(db: AsyncSession, code: str):
+async def get_url(
+    db: AsyncSession, background_tasks: BackgroundTasks, code: str
+) -> Url:
     result = await db.execute(select(Url).where(Url.short_code == code, Url.is_active))
     url = result.scalar_one_or_none()
     if not url:
         raise NotFoundError(detail="Url not found")
     if url.expires_at and url.expires_at <= date_now():
         raise NotFoundError(detail="Url expired")
+    background_tasks.add_task(increment_click_count, code)
     return url
 
 
-async def update_url(db: AsyncSession, url_id: int, data: UrlUpdate):
+async def increment_click_count(code: str):
+    try:
+        async with AsyncSessionLocal() as db:
+            async with db.begin():
+                await db.execute(
+                    update(Url)
+                    .where(Url.short_code == code)
+                    .values(click_count=Url.click_count + 1)
+                )
+    except Exception as e:
+        logger.error(f"Failed to increment count for {code}: {e}")
+
+
+async def get_user_urls(db: AsyncSession, user_id: int, page: int = 1, size: int = 10):
+    page = max(1, page)
+    size = max(1, min(100, size))
+
+    offset = (page - 1) * size
+
+    count_query = select(func.count()).select_from(Url).where(Url.user_id == user_id)
+    total = (await db.execute(count_query)).scalar_one() or 0
+
+    result = await db.execute(
+        select(Url)
+        .where(Url.user_id == user_id)
+        .order_by(Url.id.desc())
+        .offset(offset)
+        .limit(size)
+    )
+    urls = result.scalars().all()
+
+    return {
+        "items": urls,
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": (total + size - 1) // size if total > 0 else 0,
+    }
+
+
+async def update_url(
+    db: AsyncSession, url_id: int, data: UrlUpdate, user_id: int
+) -> Url:
     result = await db.execute(select(Url).where(Url.id == url_id))
     url = result.scalar_one_or_none()
 
     if not url:
         raise NotFoundError(detail="Url not found")
+
+    if url.user_id != user_id:
+        raise ForbiddenError(detail="Not allowed to modify this URL")
 
     if (
         data.original_url is None
@@ -97,11 +152,14 @@ async def update_url(db: AsyncSession, url_id: int, data: UrlUpdate):
     return url
 
 
-async def delete_url(db, url_id: int):
+async def delete_url(db, url_id: int, user_id: int) -> Url:
     result = await db.execute(select(Url).where(Url.id == url_id))
     url = result.scalar_one_or_none()
     if not url:
         raise NotFoundError(detail="Url not found")
+
+    if url.user_id != user_id:
+        raise ForbiddenError(detail="Not allowed to modify this URL")
 
     # TODO: soft delete to keep analytics/history
     await db.delete(url)
@@ -110,15 +168,15 @@ async def delete_url(db, url_id: int):
     return url
 
 
-async def is_alias_available(db, alias: str):
+async def is_alias_available(db, alias: str) -> bool:
     alias = alias.strip()
     if alias in RESERVED or len(alias) < CUSTOM_ALIAS_MIN:
-        return {"available": False}
+        return False
     result = await db.execute(select(Url.id).where(Url.short_code == alias))
     return result.scalar_one_or_none() is None
 
 
-def compute_ttl(expires_at: datetime | None):
+def compute_ttl(expires_at: datetime | None) -> int:
     if not expires_at:
         return DEFAULT_TTL
 

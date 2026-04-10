@@ -3,10 +3,9 @@ Rate Limiting / Security: For /shorten and redirect, consider rate limits to pre
 
 Validate all user input
 Input sanitization and CORS configuration.
-
-Logout (blacklist the refresh token in Redis).
-Refresh token endpoint (/auth/refresh) 
+Front setup
 Logging of security events (failed logins, etc.).
+
 Rate limiting on login/register (use slowapi or Redis-based limiter) to prevent brute-force.
 Email verification and password reset flows.
 

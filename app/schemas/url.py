@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, List
 from pydantic import (
     AfterValidator,
     BaseModel,
@@ -61,9 +61,20 @@ class UrlResponse(BaseModel):
     short_code: str
     is_active: bool
     expires_at: datetime | None
+    click_count: int
 
     model_config = ConfigDict(from_attributes=True)
 
+class UrlsResponse(BaseModel):
+    items: List[UrlResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
 
 class AliasCheckResponse(BaseModel):
     available: bool
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(min_length=20, max_length=1024)

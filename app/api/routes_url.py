@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
@@ -12,6 +12,7 @@ from app.schemas.url import (
     UrlCreate,
     UrlResponse,
     UrlUpdate,
+    UrlsResponse,
 )
 from app.services.cache_service import (
     delete_cached_url,
@@ -23,6 +24,8 @@ from app.services.url_service import (
     create_short_url,
     delete_url,
     get_url,
+    get_user_urls,
+    increment_click_count,
     is_alias_available,
     update_url,
 )
@@ -63,8 +66,20 @@ async def shorten(
     return url
 
 
+@router.get("/my-urls", response_model=UrlsResponse)
+async def get_my_urls(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(10, ge=1, le=100, description="Items per page (max 100)"),
+):
+    result = await get_user_urls(db, current_user.id, page=page, size=size)
+    return result
+
+
 @router.get("/{code}")
 async def redirect(
+    background_tasks: BackgroundTasks,
     code: str = Path(
         min_length=CUSTOM_ALIAS_MIN,
         max_length=CUSTOM_ALIAS_MAX,
@@ -74,8 +89,9 @@ async def redirect(
 ):
     cached_url = await get_cached_url(code)
     if cached_url:
+        background_tasks.add_task(increment_click_count, code)
         return cached_url
-    url = await get_url(db, code)
+    url = await get_url(db, background_tasks, code)
 
     ttl = compute_ttl(url.expires_at)
     if ttl == 0:
@@ -92,7 +108,7 @@ async def update_url_endpoint(
     db=Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    url = await update_url(db, url_id, data)
+    url = await update_url(db, url_id, data, current_user.id)
     return url
 
 
@@ -102,6 +118,6 @@ async def delete_url_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    url = await delete_url(db, url_id)
+    url = await delete_url(db, url_id, current_user.id)
     await delete_cached_url(url.short_code)
     return None

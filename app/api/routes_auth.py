@@ -14,6 +14,7 @@ from app.core.token import (
     is_refresh_token_blacklisted,
 )
 from app.models.user import User
+from app.schemas.url import RefreshTokenRequest
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.services.auth_service import (
     register_user,
@@ -70,7 +71,8 @@ async def login(
 
 
 @router.post("/refresh", response_model=dict)
-async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
+async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    refresh_token = data.refresh_token
     try:
         payload = jwt.decode(
             refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -101,9 +103,10 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/logout")
 async def logout(
-    refresh_token: str,
+    data: RefreshTokenRequest,
     current_user: User = Depends(get_current_user),
 ):
+    refresh_token = data.refresh_token
     try:
         payload = jwt.decode(
             refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
