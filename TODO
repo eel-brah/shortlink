@@ -1,17 +1,16 @@
-Testing: Write tests that expect specific BaseAppException subclasses. Mock DB to raise IntegrityError and assert the right HTTP status.
-Rate Limiting / Security: For /shorten and redirect, consider rate limits to prevent abuse. Add proper CORS/headers in error responses if needed.
-
-test default time
-
-Analytics 
-logging
 Logging of security events (failed logins, etc.).
+only users can create or check costume alias 
 
 Front setup
-
-Rate limiting on login/register (use slowapi or Redis-based limiter) to prevent brute-force.
-Email verification and password reset flows.
-
 Store access token in memory (or httpOnly cookie)
 Store refresh token in httpOnly cookie
 Automatically call /refresh when you get 401
+qr code
+
+Rate limiting on login/register (use slowapi or Redis-based limiter) to prevent brute-force.
+Rate Limiting / Security: For /shorten and redirect, consider rate limits to prevent abuse. Add proper CORS/headers in error responses if needed.
+Testing: Write tests that expect specific BaseAppException subclasses. Mock DB to raise IntegrityError and assert the right HTTP status.
+
+Email verification and password reset flows.
+
+
