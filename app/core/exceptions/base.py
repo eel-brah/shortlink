@@ -35,3 +35,7 @@ class ConflictError(BaseAppException):
 class ValidationError(BaseAppException):
     status_code = 400
     detail = "Invalid input"
+
+class Error(BaseAppException):
+    status_code = 500
+    detail = "Internal server error"

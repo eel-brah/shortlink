@@ -5,6 +5,7 @@ from app.core.exceptions.handlers import register_exception_handlers
 from app.api.routes_auth import router as auth_router
 from app.api.routes_url import router as url_router
 from app.api.routes_user import router as user_router
+from app.api.routes_analytics import router as analytics_router
 from app.core.security import SecurityHeadersMiddleware
 
 app = FastAPI()
@@ -24,10 +25,11 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],  # OPTIONS
     allow_headers=["Authorization", "Content-Type"],
 )
-# app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 register_exception_handlers(app)
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/user", tags=["User"])
 app.include_router(url_router, prefix="/urls", tags=["Urls"])
+app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])

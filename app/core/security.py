@@ -33,6 +33,7 @@ def verify_password(plain_password: str | SecretStr, hashed_password: str) -> bo
         raise Exception("Cannot hash empty password")
 
 
+#TODO:
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
@@ -46,14 +47,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         response.headers["X-XSS-Protection"] = "0"
 
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'none'; "
-            "script-src 'self'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none';"
-        )
+        # response.headers["Content-Security-Policy"] = (
+        #     "default-src 'none'; "
+        #     "script-src 'self'; "
+        #     "style-src 'self' 'unsafe-inline'; "
+        #     "img-src 'self' data:; "
+        #     "connect-src 'self'; "
+        #     "frame-ancestors 'none';"
+        # )
 
         response.headers["Permissions-Policy"] = (
             "geolocation=(), microphone=(), camera=()"

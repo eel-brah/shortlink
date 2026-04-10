@@ -1,6 +1,7 @@
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.models.analytics import UrlClick
 from app.models.user import User
 from ..db.base import Base
 
@@ -24,3 +25,6 @@ class Url(Base):
         ForeignKey("users.id"), nullable=True, index=True
     )
     user: Mapped[User | None] = relationship(User, backref="urls")
+    clicks: Mapped[list[UrlClick]] = relationship(
+        UrlClick, backref="url", lazy="selectin"
+    )

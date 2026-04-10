@@ -1,8 +1,4 @@
 from datetime import datetime
-import logging
-from fastapi import BackgroundTasks
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, update
 
@@ -47,7 +43,7 @@ async def create_short_url(
 
 
 async def get_url(
-    db: AsyncSession, background_tasks: BackgroundTasks, code: str
+    db: AsyncSession, code: str
 ) -> Url:
     result = await db.execute(select(Url).where(Url.short_code == code, Url.is_active))
     url = result.scalar_one_or_none()
@@ -55,7 +51,6 @@ async def get_url(
         raise NotFoundError(detail="Url not found")
     if url.expires_at and url.expires_at <= date_now():
         raise NotFoundError(detail="Url expired")
-    background_tasks.add_task(increment_click_count, code)
     return url
 
 

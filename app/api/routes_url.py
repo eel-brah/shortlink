@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
@@ -14,6 +14,7 @@ from app.schemas.url import (
     UrlUpdate,
     UrlsResponse,
 )
+from app.services.analytics_service import record_click
 from app.services.cache_service import (
     delete_cached_url,
     get_cached_url,
@@ -29,6 +30,7 @@ from app.services.url_service import (
     is_alias_available,
     update_url,
 )
+from app.core.exceptions.handlers import logger
 
 router = APIRouter()
 
@@ -49,7 +51,6 @@ async def check_alias(
     return {"available": exists}
 
 
-# TODO: correct the status code in all routes
 @router.post("/", response_model=UrlResponse, status_code=HTTP_201_CREATED)
 async def shorten(
     data: UrlCreate,
@@ -80,6 +81,7 @@ async def get_my_urls(
 @router.get("/{code}")
 async def redirect(
     background_tasks: BackgroundTasks,
+    request: Request,
     code: str = Path(
         min_length=CUSTOM_ALIAS_MIN,
         max_length=CUSTOM_ALIAS_MAX,
@@ -87,18 +89,29 @@ async def redirect(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    cached_url = await get_cached_url(code)
-    if cached_url:
-        background_tasks.add_task(increment_click_count, code)
-        return cached_url
-    url = await get_url(db, background_tasks, code)
+    original_url = await get_cached_url(code)
+    if not original_url:
+        url = await get_url(db, code)
+        ttl = compute_ttl(url.expires_at)
+        original_url = url.original_url
+        if ttl == 0:
+            raise NotFoundError("Url expired")
+        await set_cached_url(code, original_url, ttl)
 
-    ttl = compute_ttl(url.expires_at)
-    if ttl == 0:
-        raise NotFoundError("Url expired")
-    await set_cached_url(code, url.original_url, ttl)
+    background_tasks.add_task(increment_click_count, code)
+    background_tasks.add_task(
+        record_click,
+        code=code,
+        ip_address=(
+            request.headers.get("x-forwarded-for", "").split(",")[0]
+            or (request.client.host if request.client else None)
+        ),
+        user_agent=request.headers.get("user-agent"),
+        referrer=request.headers.get("referer"),
+    )
 
-    return url.original_url
+    # return RedirectResponse(url=original_url, status_code=307)
+    return original_url
 
 
 @router.put("/{url_id}", response_model=UrlResponse)
