@@ -4,6 +4,7 @@ from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.exceptions.base import NotFoundError
+from app.core.logger import get_logger
 from app.models.user import User
 from app.schemas.url import (
     CUSTOM_ALIAS_MAX,
@@ -30,8 +31,8 @@ from app.services.url_service import (
     is_alias_available,
     update_url,
 )
-from app.core.exceptions.handlers import logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -43,11 +44,18 @@ async def check_alias(
         pattern=r"^[a-zA-Z0-9]+$",
     ),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     cached_url = await get_cached_url(alias)
     if cached_url:
         return {"available": False}
     exists = await is_alias_available(db, alias)
+    logger.info(
+        "Alias availability checked",
+        alias=alias,
+        available=exists,
+        user_id=current_user.id,
+    )
     return {"available": exists}
 
 
@@ -64,6 +72,13 @@ async def shorten(
         data.expires_at,
         user_id=current_user.id if current_user else None,
     )
+    logger.info(
+        "Short URL created",
+        short_code=url.short_code,
+        original_url=str(data.url)[:100],
+        user_id=current_user.id if current_user else None,
+        is_custom=bool(data.custom_alias),
+    )
     return url
 
 
@@ -75,6 +90,13 @@ async def get_my_urls(
     size: int = Query(10, ge=1, le=100, description="Items per page (max 100)"),
 ):
     result = await get_user_urls(db, current_user.id, page=page, size=size)
+    logger.info(
+        "User URLs retrieved",
+        user_id=current_user.id,
+        page=page,
+        size=size,
+        total=result.get("total", 0),
+    )
     return result
 
 
@@ -122,6 +144,12 @@ async def update_url_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     url = await update_url(db, url_id, data, current_user.id)
+    logger.info(
+        "URL updated",
+        url_id=url_id,
+        short_code=url.short_code,
+        user_id=current_user.id,
+    )
     return url
 
 
@@ -132,5 +160,11 @@ async def delete_url_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     url = await delete_url(db, url_id, current_user.id)
+    logger.info(
+        "URL deleted",
+        url_id=url_id,
+        short_code=url.short_code,
+        user_id=current_user.id,
+    )
     await delete_cached_url(url.short_code)
     return None

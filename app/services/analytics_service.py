@@ -1,13 +1,15 @@
 from datetime import timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from app.core.logger import get_logger
 from app.db.session import AsyncSessionLocal
 from app.models.analytics import UrlClick
 from app.models.url import Url
 from app.core.exceptions.base import NotFoundError
 from app.services.utils import safe_commit
 from app.utils.utils import date_now, get_country, parse_user_agent
-from app.core.exceptions.handlers import logger
+
+logger = get_logger(__name__)
 
 
 async def record_click(
@@ -18,11 +20,17 @@ async def record_click(
 ):
     try:
         async with AsyncSessionLocal() as db:
+            logger.info("URL redirected", short_code=code, ip=ip_address)
+
             result = await db.execute(select(Url).where(Url.short_code == code))
             url = result.scalar_one_or_none()
 
             if not url:
-                logger.warning(f"Failed to record the click for {code}: Url not found")
+                logger.error(
+                    "Failed to record click",
+                    short_code=code,
+                    error="Url not found",
+                )
                 return
 
             country = get_country(ip_address)
@@ -45,7 +53,11 @@ async def record_click(
             db.add(click)
             await safe_commit(db)
     except Exception as e:
-        logger.error(f"Failed to record the click for {code}: {e}")
+        logger.error(
+            "Failed to record click",
+            short_code=code,
+            error=str(e),
+        )
 
 
 async def get_url_analytics(db: AsyncSession, code: str, current_user_id: int):

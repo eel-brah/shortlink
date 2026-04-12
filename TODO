@@ -1,5 +1,5 @@
-Logging of security events (failed logins, etc.).
-only users can create or check costume alias 
+ID
+
 
 Front setup
 Store access token in memory (or httpOnly cookie)

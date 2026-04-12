@@ -7,6 +7,7 @@ from starlette.status import HTTP_201_CREATED
 from app.api.deps import get_current_user, get_db
 from app.core.config import settings
 from app.core.exceptions.base import UnauthorizedError
+from app.core.logger import get_logger
 from app.core.token import (
     blacklist_refresh_token,
     create_access_token,
@@ -21,12 +22,20 @@ from app.services.auth_service import (
     authenticate_user,
 )
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=HTTP_201_CREATED)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await register_user(db, data)
+    user = await register_user(db, data)
+    logger.info(
+        "User registered successfully",
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+    )
+    return user
 
 
 @router.post("/login", response_model=dict)
@@ -51,9 +60,18 @@ async def login(
 
     payload = {"sub": str(user.id)}
 
+    access_token = create_access_token(payload)
+    refresh_token = create_refresh_token(payload)
+
+    logger.info(
+        "User logged in successfully",
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+    )
     return {
-        "access_token": create_access_token(payload),
-        "refresh_token": create_refresh_token(payload),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
@@ -63,11 +81,21 @@ async def login(
 #     user = await authenticate_user(db, data)
 #
 #     payload = {"sub": str(user.id)}
+#     access_token = create_access_token(payload)
+#     refresh_token = create_refresh_token(payload)
+#
+#     logger.info(
+#         "User logged in successfully",
+#         user_id=user.id,
+#         username=user.username,
+#         email=user.email,
+#     )
 #     return {
-#         "access_token": create_access_token(payload),
-#         "refresh_token": create_refresh_token(payload),
+#         "access_token": access_token,
+#         "refresh_token": refresh_token,
 #         "token_type": "bearer",
 #     }
+#
 
 
 @router.post("/refresh", response_model=dict)
@@ -94,6 +122,8 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
 
     await blacklist_refresh_token(jti, int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400))
 
+    logger.info("Tokens created successfully")
+
     return {
         "access_token": new_access,
         "refresh_token": new_refresh,
@@ -106,18 +136,18 @@ async def logout(
     data: RefreshTokenRequest,
     current_user: User = Depends(get_current_user),
 ):
-    refresh_token = data.refresh_token
-    try:
-        payload = jwt.decode(
-            refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        jti = payload.get("jti")
-        if jti is None:
-            raise UnauthorizedError("Invalid refresh token")
-        await blacklist_refresh_token(
-            jti, int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400)
-        )
-    except Exception:
-        pass
+    payload = jwt.decode(
+        data.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+    )
+    jti = payload.get("jti")
+    if jti is None or payload.get("type") != "refresh":
+        raise UnauthorizedError("Invalid refresh token")
+    await blacklist_refresh_token(jti, int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400))
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise UnauthorizedError()
+
+    logger.info("User logged in successfully", user_id=user_id)
 
     return {"message": "Logged out successfully"}

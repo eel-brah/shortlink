@@ -2,17 +2,25 @@ from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, update
 
-from app.core.exceptions.handlers import logger
+from app.core.logger import get_logger
 from app.db.session import AsyncSessionLocal
 
 from ..services.utils import safe_commit
 from app.utils.utils import date_now
 
-from ..core.exceptions.base import ConflictError, ForbiddenError, NotFoundError
+from ..core.exceptions.base import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+)
 from app.models.url import Url
 from app.schemas.url import CUSTOM_ALIAS_MIN, RESERVED, UrlUpdate
 from app.services.cache_service import delete_cached_url, set_cached_url
 from app.utils.shortener import encode_id
+
+
+logger = get_logger(__name__)
 
 DEFAULT_TTL = 60 * 60 * 24  # 24 hours
 
@@ -24,6 +32,12 @@ async def create_short_url(
     expires_at: datetime | None,
     user_id: int | None = None,
 ) -> Url:
+    if custom_alias and user_id is None:
+        raise ForbiddenError(
+            "Custom aliases are only available for registered users. "
+            "Please log in to create a custom short link."
+        )
+
     if custom_alias:
         existing = await db.execute(select(Url).where(Url.short_code == custom_alias))
         if existing.scalar_one_or_none():
@@ -42,9 +56,7 @@ async def create_short_url(
     return url
 
 
-async def get_url(
-    db: AsyncSession, code: str
-) -> Url:
+async def get_url(db: AsyncSession, code: str) -> Url:
     result = await db.execute(select(Url).where(Url.short_code == code, Url.is_active))
     url = result.scalar_one_or_none()
     if not url:
@@ -64,7 +76,11 @@ async def increment_click_count(code: str):
                     .values(click_count=Url.click_count + 1)
                 )
     except Exception as e:
-        logger.error(f"Failed to increment count for {code}: {e}")
+        logger.error(
+            "Failed to increment count",
+            short_code=code,
+            error=str(e),
+        )
 
 
 async def get_user_urls(db: AsyncSession, user_id: int, page: int = 1, size: int = 10):

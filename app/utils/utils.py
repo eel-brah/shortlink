@@ -7,7 +7,7 @@ def date_now():
     return datetime.now(timezone.utc)
 
 
-def get_country(ip_address: str) -> str:
+def get_country(ip_address: str | None) -> str:
     if not ip_address:
         return "Unknown"
 

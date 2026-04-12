@@ -1,14 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.core.config import settings
 from app.core.exceptions.handlers import register_exception_handlers
 from app.api.routes_auth import router as auth_router
 from app.api.routes_url import router as url_router
 from app.api.routes_user import router as user_router
 from app.api.routes_analytics import router as analytics_router
+from app.core.logger import setup_logging
 from app.core.security import SecurityHeadersMiddleware
 
-app = FastAPI()
+setup_logging()
+
+app = FastAPI(title=settings.APP_NAME)
 
 # app.add_middleware(
 #     TrustedHostMiddleware, allowed_hosts=["example.com", "*.example.com"]
