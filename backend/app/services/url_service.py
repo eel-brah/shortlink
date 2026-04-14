@@ -111,9 +111,9 @@ async def get_user_urls(db: AsyncSession, user_id: int, page: int = 1, size: int
 
 
 async def update_url(
-    db: AsyncSession, url_id: int, data: UrlUpdate, user_id: int
+    db: AsyncSession, short_code: str, data: UrlUpdate, user_id: int
 ) -> Url:
-    result = await db.execute(select(Url).where(Url.id == url_id))
+    result = await db.execute(select(Url).where(Url.short_code == short_code))
     url = result.scalar_one_or_none()
 
     if not url:
@@ -163,8 +163,8 @@ async def update_url(
     return url
 
 
-async def delete_url(db, url_id: int, user_id: int) -> Url:
-    result = await db.execute(select(Url).where(Url.id == url_id))
+async def delete_url(db, short_code: str, user_id: int) -> Url:
+    result = await db.execute(select(Url).where(Url.short_code == short_code))
     url = result.scalar_one_or_none()
     if not url:
         raise NotFoundError(detail="Url not found")

@@ -56,7 +56,6 @@ class UrlUpdate(BaseModel):
 
 
 class UrlResponse(BaseModel):
-    id: int
     original_url: str
     short_code: str
     is_active: bool

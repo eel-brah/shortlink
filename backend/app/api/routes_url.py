@@ -1,4 +1,6 @@
+from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, Request
+from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
@@ -99,16 +101,20 @@ async def get_my_urls(
     )
     return result
 
+CustomCodePath = Annotated[
+    str,
+    Path(
+        min_length=CUSTOM_ALIAS_MIN,
+        max_length=CUSTOM_ALIAS_MAX,
+        pattern=r"^[a-zA-Z0-9]+$",
+    ),
+]
 
 @router.get("/{code}")
 async def redirect(
     background_tasks: BackgroundTasks,
     request: Request,
-    code: str = Path(
-        min_length=CUSTOM_ALIAS_MIN,
-        max_length=CUSTOM_ALIAS_MAX,
-        pattern=r"^[a-zA-Z0-9]+$",
-    ),
+    code: CustomCodePath,
     db: AsyncSession = Depends(get_db),
 ):
     original_url = await get_cached_url(code)
@@ -136,33 +142,31 @@ async def redirect(
     return original_url
 
 
-@router.put("/{url_id}", response_model=UrlResponse)
+@router.put("/{short_code}", response_model=UrlResponse)
 async def update_url_endpoint(
-    url_id: int,
+    short_code: CustomCodePath,
     data: UrlUpdate,
     db=Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    url = await update_url(db, url_id, data, current_user.id)
+    url = await update_url(db, short_code, data, current_user.id)
     logger.info(
         "URL updated",
-        url_id=url_id,
         short_code=url.short_code,
         user_id=current_user.id,
     )
     return url
 
 
-@router.delete("/{url_id}", status_code=HTTP_204_NO_CONTENT)
+@router.delete("/{short_code}", status_code=HTTP_204_NO_CONTENT)
 async def delete_url_endpoint(
-    url_id: int,
+    short_code: CustomCodePath,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    url = await delete_url(db, url_id, current_user.id)
+    url = await delete_url(db, short_code, current_user.id)
     logger.info(
         "URL deleted",
-        url_id=url_id,
         short_code=url.short_code,
         user_id=current_user.id,
     )
