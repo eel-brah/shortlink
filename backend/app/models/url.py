@@ -1,11 +1,14 @@
+from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.analytics import UrlClick
-from app.models.user import User
 from ..db.base import Base
 
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from .user import User
+    from .analytics import UrlClick
 
 
 class Url(Base):
@@ -21,10 +24,12 @@ class Url(Base):
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
     user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True, index=True
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    user: Mapped[User | None] = relationship(User, backref="urls")
-    clicks: Mapped[list[UrlClick]] = relationship(
-        UrlClick, backref="url", lazy="selectin"
+    # TODO:
+    user: Mapped["User"] = relationship(back_populates="urls")
+    clicks: Mapped[list["UrlClick"]] = relationship(
+        back_populates="url", cascade="all, delete-orphan"
     )

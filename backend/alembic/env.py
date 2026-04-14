@@ -12,6 +12,7 @@ from app.db.base import Base
 
 from app.models.url import Url
 from app.models.user import User
+from app.models.analytics import UrlClick
 
 
 # this is the Alembic Config object, which provides
