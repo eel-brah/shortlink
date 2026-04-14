@@ -127,7 +127,6 @@ class UserUpdate(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
     username: Username
     email: EmailStr
     created_at: datetime
