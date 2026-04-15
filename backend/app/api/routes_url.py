@@ -1,6 +1,5 @@
 from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, Request
-from pydantic import Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
@@ -80,6 +79,7 @@ async def shorten(
         original_url=str(data.url)[:100],
         user_id=current_user.id if current_user else None,
         is_custom=bool(data.custom_alias),
+        expires_at=data.expires_at
     )
     return url
 

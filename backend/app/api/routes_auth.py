@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 from pydantic import SecretStr
@@ -41,6 +41,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=dict)
 async def login(
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
@@ -52,7 +53,8 @@ async def login(
 
     else:
         data = UserLogin(
-            username=form_data.username,
+            username=form_data.username if "@" not in form_data.username else None,
+            email=form_data.username if "@" in form_data.username else None,
             password=SecretStr(form_data.password),
         )
 
@@ -63,15 +65,24 @@ async def login(
     access_token = create_access_token(payload)
     refresh_token = create_refresh_token(payload)
 
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,  # TODO: True (HTTPS)
+        samesite="lax",
+        path="/",
+    )
+
     logger.info(
         "User logged in successfully",
         user_id=user.id,
         username=user.username,
         email=user.email,
     )
+
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer",
     }
 
@@ -99,8 +110,16 @@ async def login(
 
 
 @router.post("/refresh", response_model=dict)
-async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+async def refresh_token(
+    request: Request, response: Response, db: AsyncSession = Depends(get_db)
+):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise UnauthorizedError("Missing refresh token")
+
+    data = RefreshTokenRequest(refresh_token=refresh_token)
     refresh_token = data.refresh_token
+
     try:
         payload = jwt.decode(
             refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
@@ -122,20 +141,32 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
 
     await blacklist_refresh_token(jti, int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400))
 
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        path="/",
+    )
+
     logger.info("Tokens created successfully")
 
     return {
         "access_token": new_access,
-        "refresh_token": new_refresh,
-        "token_type": "bearer",
     }
 
 
 @router.post("/logout")
 async def logout(
-    data: RefreshTokenRequest,
-    current_user: User = Depends(get_current_user),
+    response: Response,
+    request: Request,
 ):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        return {"message": "Already logged out"}
+
+    data = RefreshTokenRequest(refresh_token=refresh_token)
     payload = jwt.decode(
         data.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
     )
@@ -144,10 +175,47 @@ async def logout(
         raise UnauthorizedError("Invalid refresh token")
     await blacklist_refresh_token(jti, int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400))
 
+    response.delete_cookie("refresh_token")
+
     user_id = payload.get("sub")
     if user_id is None:
         raise UnauthorizedError()
 
-    logger.info("User logged in successfully", user_id=user_id)
+    logger.info("User logged out successfully", user_id=user_id)
 
     return {"message": "Logged out successfully"}
+
+
+# @router.post("/logout")
+# async def logout(
+#     response: Response,
+#     request: Request,
+# ):
+#     refresh_token = request.cookies.get("refresh_token")
+#
+#     if not refresh_token:
+#         # already logged out → no error
+#         return {"message": "Already logged out"}
+#
+#     try:
+#         payload = jwt.decode(
+#             refresh_token,
+#             settings.SECRET_KEY,
+#             algorithms=[settings.ALGORITHM],
+#         )
+#
+#         jti = payload.get("jti")
+#
+#         if jti:
+#             await blacklist_refresh_token(
+#                 jti,
+#                 int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
+#             )
+#
+#     except Exception:
+#         # token invalid → still clear cookie
+#         pass
+#
+#     response.delete_cookie("refresh_token")
+#
+#     return {"message": "Logged out successfully"}

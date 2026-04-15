@@ -1,9 +1,8 @@
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-
+from pydantic import ValidationError as PydanticValidationError
 from app.core.exceptions.base import BaseAppException
-import logging
 
 from app.core.logger import get_logger
 
@@ -48,7 +47,22 @@ def register_exception_handlers(app):
         )
         return JSONResponse(
             status_code=422,
-            content={"detail": str(exc.errors())},
+            content={"detail": exc.errors()},
+        )
+
+    @app.exception_handler(PydanticValidationError)
+    async def pydantic_validation_exception_handler(
+        request: Request, exc: PydanticValidationError
+    ):
+        logger.warning(
+            "Pydantic validation failed",
+            errors=exc.errors(),
+            path=str(request.url),
+            method=request.method,
+        )
+        return JSONResponse(
+            status_code=422,
+            content={"detail": exc.errors()},
         )
 
     @app.exception_handler(Exception)
@@ -58,7 +72,7 @@ def register_exception_handlers(app):
             error=str(exc),
             path=str(request.url),
             method=request.method,
-            exc_info=True, 
+            exc_info=True,
         )
         return JSONResponse(
             status_code=500,
