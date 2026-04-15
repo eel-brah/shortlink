@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.core.logger import get_logger
@@ -60,7 +61,29 @@ async def record_click(
         )
 
 
-async def get_url_analytics(db: AsyncSession, code: str, current_user_id: int):
+async def get_gloabal_analytics_service(db: AsyncSession, user_id: int):
+    now = date_now()
+    start = now - timedelta(days=7)
+
+    result = await db.execute(
+        select(
+            func.date_trunc("day", UrlClick.clicked_at).label("date"),
+            func.count().label("clicks"),
+        )
+        .join(UrlClick.url)
+        .where(Url.user_id == user_id)
+        .where(UrlClick.clicked_at >= start)
+        .group_by("date")
+        .order_by("date")
+    )
+
+    rows = result.all()
+    return rows
+
+
+async def get_url_analytics(
+    db: AsyncSession, code: str, current_user_id: int, tz: str = "UTC"
+):
     url_result = await db.execute(
         select(Url).where(Url.short_code == code, Url.user_id == current_user_id)
     )
@@ -74,7 +97,7 @@ async def get_url_analytics(db: AsyncSession, code: str, current_user_id: int):
     total = total_clicks.scalar() or 0
 
     thirty_days_ago = date_now() - timedelta(days=30)
-    date_expr = func.date_trunc("day", UrlClick.clicked_at)
+    date_expr = func.date_trunc("day", func.timezone(tz, UrlClick.clicked_at))
 
     daily_query = await db.execute(
         select(
@@ -128,25 +151,34 @@ async def get_url_analytics(db: AsyncSession, code: str, current_user_id: int):
         .limit(5)
     )
 
+    today = datetime.now(ZoneInfo(tz)).date()
+
+    clicks_today = sum(
+        int(r.count) for r in daily_rows if r.date and r.date.date() == today
+    )
     return {
         "short_code": code,
         "original_url": url.original_url,
         "total_clicks": total,
-        "daily_clicks": [
-            {"date": r.date.date() if r.date else None, "count": r.count}
+        "clicks_today": clicks_today,
+        "clicks_over_time": [
+            {
+                "date": r.date.isoformat() if r.date else None,
+                "clicks": r.count,
+            }
             for r in daily_rows
         ],
-        "top_referrers": [
-            {"label": r.referrer or "Direct", "count": r.count} for r in referrer_query
+        "devices": [
+            {"name": d.device or "Unknown", "value": d.count} for d in device_query
         ],
-        "top_countries": [
-            {"label": c.country or "Unknown", "count": c.count} for c in country_query
+        "countries": [
+            {"name": c.country or "Unknown", "value": c.count} for c in country_query
         ],
-        "top_devices": [
-            {"label": d.device or "Unknown", "count": d.count} for d in device_query
+        "referrers": [
+            {"name": r.referrer or "Direct", "value": r.count} for r in referrer_query
         ],
-        "top_browsers": [
-            {"label": b.browser or "Unknown", "count": b.count} for b in browser_query
+        "browsers": [
+            {"name": b.browser or "Unknown", "value": b.count} for b in browser_query
         ],
-        "top_os": [{"label": o.os or "Unknown", "count": o.count} for o in os_query],
+        "os": [{"name": o.os or "Unknown", "value": o.count} for o in os_query],
     }

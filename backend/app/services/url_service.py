@@ -12,7 +12,6 @@ from ..core.exceptions.base import (
     ConflictError,
     ForbiddenError,
     NotFoundError,
-    UnauthorizedError,
 )
 from app.models.url import Url
 from app.schemas.url import CUSTOM_ALIAS_MIN, RESERVED, UrlUpdate
@@ -83,6 +82,15 @@ async def increment_click_count(code: str):
         )
 
 
+async def get_total_clicks(db, user_id: int) -> int:
+    result = await db.execute(
+        select(func.coalesce(func.sum(Url.click_count), 0)).where(
+            Url.user_id == user_id
+        )
+    )
+    return result.scalar_one()
+
+
 async def get_user_urls(db: AsyncSession, user_id: int, page: int = 1, size: int = 10):
     page = max(1, page)
     size = max(1, min(100, size))
@@ -101,12 +109,15 @@ async def get_user_urls(db: AsyncSession, user_id: int, page: int = 1, size: int
     )
     urls = result.scalars().all()
 
+    total_clicks = await get_total_clicks(db, user_id)
+
     return {
         "items": urls,
         "total": total,
         "page": page,
         "size": size,
         "pages": (total + size - 1) // size if total > 0 else 0,
+        "total_clicks": total_clicks,
     }
 
 

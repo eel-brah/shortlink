@@ -15,6 +15,7 @@ import Footer from "./Footer"
 import { shortenUrl } from "../api/urls"
 import { Link } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
+import { BASE_URL, DOMAIN } from "../utils/config";
 
 export default function LandingPage() {
   const [loading, setLoading] = useState(false)
@@ -258,13 +259,13 @@ export default function LandingPage() {
                 <div className="flex justify-between items-center bg-gray-100 px-5 py-4 rounded-xl">
 
                   <span className="font-semibold text-indigo-900 truncate">
-                    indigo.link/{result.short_code}
+                    {DOMAIN}/{result.short_code}
                   </span>
 
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(
-                        `http://localhost:8000/${result.short_code}`
+                        `${BASE_URL}/${result.short_code}`
                       )
 
                       showToast("Url copied", "info")

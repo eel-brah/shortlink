@@ -9,9 +9,12 @@ import { useAuth } from "./context/AuthContext"
 import { useEffect } from "react"
 import { setAccessTokenGlobal } from "./utils/axios"
 import { refreshAccessToken } from "./api/auth"
+import { PublicOnly, RequireAuth } from "./components/RequireAuth"
+import DashboardPage from "./components/DashboardPage"
+import LinkAnalyticsPage from "./components/LinkAnalyticsPage"
 
 function App() {
-  const { setAccessToken } = useAuth()
+  const { setAccessToken, setLoading } = useAuth()
 
   useEffect(() => {
     const initAuth = async () => {
@@ -20,8 +23,10 @@ function App() {
 
         setAccessToken(res.access_token)
         setAccessTokenGlobal(res.access_token)
-
       } catch {
+        setAccessToken(null)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -34,8 +39,31 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+
+        <Route path="/login"
+          element={
+            <PublicOnly>
+              <LoginPage />
+            </PublicOnly>
+          } />
+        <Route path="/register" element={
+          <PublicOnly>
+            <RegisterPage />
+          </PublicOnly>} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <DashboardPage />
+            </RequireAuth>
+          }
+        />
+        <Route path="/dashboard/:code" element={
+          <RequireAuth>
+            <LinkAnalyticsPage />
+          </RequireAuth>
+        } />
       </Routes>
     </>
   )

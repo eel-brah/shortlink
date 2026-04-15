@@ -1,16 +1,16 @@
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useState, useEffect, useRef } from "react"
 import { setToast } from "../utils/toast"
-
-type ToastType = "error" | "success" | "warning" | "info"
+import type { ToastType } from "../utils/types"
 
 type Toast = {
   id: number
   message: string
   type: ToastType
+  duration: number
 }
 
 type ToastContextType = {
-  showToast: (message: string, type?: ToastType) => void
+  showToast: (message: string, type?: ToastType, duration?: number) => void
 }
 
 const ToastContext = createContext<ToastContextType | null>(null)
@@ -23,15 +23,49 @@ export const useToast = () => {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timers = useRef<Map<number, { timeout: any; start: number; remaining: number }>>(new Map())
 
-  const showToast = (message: string, type: ToastType = "error") => {
+  const removeToast = (id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+    timers.current.delete(id)
+  }
+
+  const startTimer = (id: number, duration: number) => {
+    const start = Date.now()
+
+    const timeout = setTimeout(() => {
+      removeToast(id)
+    }, duration)
+
+    timers.current.set(id, { timeout, start, remaining: duration })
+  }
+
+  const pauseTimer = (id: number) => {
+    const timer = timers.current.get(id)
+    if (!timer) return
+
+    clearTimeout(timer.timeout)
+    const elapsed = Date.now() - timer.start
+    timer.remaining -= elapsed
+  }
+
+  const resumeTimer = (id: number) => {
+    const timer = timers.current.get(id)
+    if (!timer) return
+
+    timer.start = Date.now()
+    timer.timeout = setTimeout(() => removeToast(id), timer.remaining)
+  }
+
+  const showToast = (
+    message: string,
+    type: ToastType = "error",
+    duration: number = 3000
+  ) => {
     const id = Date.now()
 
-    setToasts((prev) => [...prev, { id, message, type }])
-
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3000)
+    setToasts((prev) => [...prev, { id, message, type, duration }])
+    startTimer(id, duration)
   }
 
   useEffect(() => {
@@ -46,7 +80,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`px-6 py-3 rounded-xl shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top
+            onMouseEnter={() => pauseTimer(toast.id)}
+            onMouseLeave={() => resumeTimer(toast.id)}
+            className={`relative overflow-hidden px-6 py-3 rounded-xl shadow-lg text-sm font-medium
               ${toast.type === "error" && "bg-red-500 text-white"}
               ${toast.type === "success" && "bg-green-500 text-white"}
               ${toast.type === "warning" && "bg-yellow-400 text-black"}
@@ -54,9 +90,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             `}
           >
             {toast.message}
+
+            {/* Progress bar */}
+            <div className="absolute bottom-0 left-0 h-1 bg-black/20 w-full">
+              <div
+                className="h-full bg-white/70"
+                style={{
+                  animation: `progress ${toast.duration}ms linear forwards`,
+                }}
+              />
+            </div>
           </div>
         ))}
       </div>
+
+      <style>{`
+        @keyframes progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
     </ToastContext.Provider>
   )
 }

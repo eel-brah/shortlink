@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, List
 from pydantic import (
     AfterValidator,
@@ -37,8 +37,14 @@ def validate_alias(value: str | None) -> str | None:
 
 
 def validate_expiration(value):
-    if value and value <= date_now():
+    if value is None:
+        return value
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    now = date_now()
+    if value <= now:
         raise ValueError("Expiration must be in the future")
+
     return value
 
 
@@ -61,8 +67,10 @@ class UrlResponse(BaseModel):
     is_active: bool
     expires_at: datetime | None
     click_count: int
+    created_at: datetime | None #TODO
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class UrlsResponse(BaseModel):
     items: List[UrlResponse]
@@ -70,6 +78,8 @@ class UrlsResponse(BaseModel):
     page: int
     size: int
     pages: int
+    total_clicks: int
+
 
 class AliasCheckResponse(BaseModel):
     available: bool

@@ -3,6 +3,8 @@ import { createContext, useContext, useState } from "react"
 type AuthContextType = {
   accessToken: string | null
   setAccessToken: (token: string | null) => void
+  loading: boolean
+  setLoading: (v: boolean) => void
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -15,9 +17,10 @@ export const useAuth = () => {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   return (
-    <AuthContext.Provider value={{ accessToken, setAccessToken }}>
+    <AuthContext.Provider value={{ accessToken, setAccessToken, loading, setLoading }}>
       {children}
     </AuthContext.Provider>
   )

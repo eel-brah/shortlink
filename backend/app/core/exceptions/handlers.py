@@ -9,6 +9,13 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+def clean_errors(errors):
+    return [
+        {"msg": str(e.get("msg")), "field": ".".join(map(str, e.get("loc", [])))}
+        for e in errors
+    ]
+
+
 def register_exception_handlers(app):
     @app.exception_handler(BaseAppException)
     async def app_exception_handler(request: Request, exc: BaseAppException):
@@ -45,9 +52,11 @@ def register_exception_handlers(app):
             path=str(request.url),
             method=request.method,
         )
+
+        errors = clean_errors(exc.errors())
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors()},
+            content={"detail": errors},
         )
 
     @app.exception_handler(PydanticValidationError)
@@ -60,9 +69,11 @@ def register_exception_handlers(app):
             path=str(request.url),
             method=request.method,
         )
+
+        errors = clean_errors(exc.errors())
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors()},
+            content={"detail": errors},
         )
 
     @app.exception_handler(Exception)

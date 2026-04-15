@@ -1,4 +1,4 @@
-type ToastType = "error" | "success" | "warning" | "info"
+import type { ToastType } from "./types"
 
 let toastFn: ((message: string, type?: ToastType) => void) | null = null
 
