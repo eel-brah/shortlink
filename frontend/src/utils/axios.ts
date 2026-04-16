@@ -96,11 +96,25 @@ api.interceptors.response.use(
         const field = e.loc?.[1]
         toast(field ? `${field}: ${e.msg}` : e.msg, "error")
       })
+
+      // if (error.response?.status === 429){
+      //   setTimeout(() => {
+      //     window.location.href = "/";
+      //   }, 3000);
+      // }
+
       return Promise.reject(error)
     }
 
     if (typeof data?.detail === "string") {
+
       toast(data.detail, "error")
+
+      // if (error.response?.status === 429){
+      //   setTimeout(() => {
+      //     window.location.href = "/";
+      //   }, 3000);
+      // }
       return Promise.reject(error)
     }
 

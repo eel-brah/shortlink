@@ -21,5 +21,6 @@ dependencies = [
     "user-agents>=2.2.0",
     "structlog>=25.5.0",
     "pillow>=12.2.0",
+    "slowapi>=0.1.9",
 ]
 

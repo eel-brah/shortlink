@@ -1,10 +1,10 @@
 from typing import Annotated
-from fastapi import APIRouter, BackgroundTasks, Depends, Path, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from app.api.deps import get_current_user, get_current_user_optional, get_db
-from app.core.exceptions.base import NotFoundError
+from app.core.limiter import limiter
 from app.core.logger import get_logger
 from app.models.user import User
 from app.schemas.url import (
@@ -16,19 +16,14 @@ from app.schemas.url import (
     UrlUpdate,
     UrlsResponse,
 )
-from app.services.analytics_service import record_click
 from app.services.cache_service import (
     delete_cached_url,
     get_cached_url,
-    set_cached_url,
 )
 from app.services.url_service import (
-    compute_ttl,
     create_short_url,
     delete_url,
-    get_url,
     get_user_urls,
-    increment_click_count,
     is_alias_available,
     update_url,
 )
@@ -38,7 +33,9 @@ router = APIRouter()
 
 
 @router.get("/check-alias", response_model=AliasCheckResponse)
+@limiter.limit("30/minute")
 async def check_alias(
+    request: Request,
     alias: str = Query(
         min_length=CUSTOM_ALIAS_MIN,
         max_length=CUSTOM_ALIAS_MAX,
@@ -61,7 +58,9 @@ async def check_alias(
 
 
 @router.post("/", response_model=UrlResponse, status_code=HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def shorten(
+    request: Request,
     data: UrlCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
@@ -79,13 +78,15 @@ async def shorten(
         original_url=str(data.url)[:100],
         user_id=current_user.id if current_user else None,
         is_custom=bool(data.custom_alias),
-        expires_at=data.expires_at
+        expires_at=data.expires_at,
     )
     return url
 
 
 @router.get("/my-urls", response_model=UrlsResponse)
+@limiter.limit("60/minute")
 async def get_my_urls(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     page: int = Query(1, ge=1, description="Page number"),
@@ -101,6 +102,7 @@ async def get_my_urls(
     )
     return result
 
+
 CustomCodePath = Annotated[
     str,
     Path(
@@ -110,40 +112,11 @@ CustomCodePath = Annotated[
     ),
 ]
 
-@router.get("/{code}")
-async def redirect(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    code: CustomCodePath,
-    db: AsyncSession = Depends(get_db),
-):
-    original_url = await get_cached_url(code)
-    if not original_url:
-        url = await get_url(db, code)
-        ttl = compute_ttl(url.expires_at)
-        original_url = url.original_url
-        if ttl == 0:
-            raise NotFoundError("Url expired")
-        await set_cached_url(code, original_url, ttl)
-
-    background_tasks.add_task(increment_click_count, code)
-    background_tasks.add_task(
-        record_click,
-        code=code,
-        ip_address=(
-            request.headers.get("x-forwarded-for", "").split(",")[0]
-            or (request.client.host if request.client else None)
-        ),
-        user_agent=request.headers.get("user-agent"),
-        referrer=request.headers.get("referer"),
-    )
-
-    # return RedirectResponse(url=original_url, status_code=307)
-    return original_url
-
 
 @router.put("/{short_code}", response_model=UrlResponse)
+@limiter.limit("30/minute")
 async def update_url_endpoint(
+    request: Request,
     short_code: CustomCodePath,
     data: UrlUpdate,
     db=Depends(get_db),
@@ -159,7 +132,9 @@ async def update_url_endpoint(
 
 
 @router.delete("/{short_code}", status_code=HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
 async def delete_url_endpoint(
+    request: Request,
     short_code: CustomCodePath,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

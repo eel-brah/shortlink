@@ -60,11 +60,15 @@ export default function DashboardPage() {
   }
   const load = async () => {
     setLoading(true)
-    const res = await getMyUrls(page, size)
-    setLinks(res.items)
-    setTotal(res.total)
-    setTotalClicks(res.total_clicks)
-    setLoading(false)
+    try {
+      const res = await getMyUrls(page, size)
+      setLinks(res.items)
+      setTotal(res.total)
+      setTotalClicks(res.total_clicks)
+      setLoading(false)
+    }
+    catch {
+    }
   }
 
   const totalPages = Math.ceil(total / size)

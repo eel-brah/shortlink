@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
@@ -64,3 +64,19 @@ async def get_current_user(
         raise UnauthorizedError("Not authenticated")
 
     return await get_current_user_by_token(db, token)
+
+
+def get_user_id_from_request(request: Request) -> str | None:
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+
+    token = auth_header.split(" ")[1]
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        return payload.get("sub")
+    except (JWTError, ValueError):
+        return None

@@ -5,6 +5,7 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED
 from app.api.deps import get_db
+from app.core.limiter import limiter
 from app.core.config import settings
 from app.core.exceptions.base import UnauthorizedError
 from app.core.logger import get_logger
@@ -26,7 +27,10 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=HTTP_201_CREATED)
-async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(
+    request: Request, data: UserCreate, db: AsyncSession = Depends(get_db)
+):
     user = await register_user(db, data)
     logger.info(
         "User registered successfully",
@@ -38,6 +42,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=dict)
+@limiter.limit("10/minute")
 async def login(
     request: Request,
     response: Response,
@@ -109,6 +114,7 @@ async def login(
 
 
 @router.post("/refresh", response_model=dict)
+@limiter.limit("10/minute")
 async def refresh_token(
     request: Request, response: Response, db: AsyncSession = Depends(get_db)
 ):
@@ -158,6 +164,7 @@ async def refresh_token(
 
 
 @router.post("/logout")
+@limiter.limit("10/minute")
 async def logout(
     response: Response,
     request: Request,
@@ -184,38 +191,3 @@ async def logout(
     logger.info("User logged out successfully", user_id=user_id)
 
     return {"message": "Logged out successfully"}
-
-
-# @router.post("/logout")
-# async def logout(
-#     response: Response,
-#     request: Request,
-# ):
-#     refresh_token = request.cookies.get("refresh_token")
-#
-#     if not refresh_token:
-#         # already logged out → no error
-#         return {"message": "Already logged out"}
-#
-#     try:
-#         payload = jwt.decode(
-#             refresh_token,
-#             settings.SECRET_KEY,
-#             algorithms=[settings.ALGORITHM],
-#         )
-#
-#         jti = payload.get("jti")
-#
-#         if jti:
-#             await blacklist_refresh_token(
-#                 jti,
-#                 int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
-#             )
-#
-#     except Exception:
-#         # token invalid → still clear cookie
-#         pass
-#
-#     response.delete_cookie("refresh_token")
-#
-#     return {"message": "Logged out successfully"}

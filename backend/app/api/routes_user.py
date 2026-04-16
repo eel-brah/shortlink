@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File,  UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_204_NO_CONTENT
 from app.api.deps import get_current_user, get_db
@@ -13,13 +13,16 @@ from app.services.user_service import (
     update_user,
     upload_avatar_service,
 )
+from app.core.limiter import limiter
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
 @router.get("/me", response_model=UserResponse)
+@limiter.limit("30/minute")
 async def get_user_info(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -36,7 +39,9 @@ async def get_user_info(
 
 
 @router.put("/me", response_model=UserResponse)
+@limiter.limit("5/minute")
 async def update_my_profile(
+    request: Request,
     data: UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -55,8 +60,11 @@ async def update_my_profile(
 
 
 @router.delete("/me", status_code=HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
 async def delete_my_account(
-    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     await delete_user(db, current_user.id)
     logger.info(
@@ -69,7 +77,9 @@ async def delete_my_account(
 
 
 @router.post("/me/avatar")
+@limiter.limit("5/minute")
 async def upload_avatar(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -89,7 +99,9 @@ async def upload_avatar(
 
 
 @router.delete("/me/avatar", status_code=HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
 async def delete_avatar(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

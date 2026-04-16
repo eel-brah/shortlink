@@ -2,6 +2,7 @@ from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError as PydanticValidationError
+from slowapi.errors import RateLimitExceeded
 from app.core.exceptions.base import BaseAppException
 
 from app.core.logger import get_logger
@@ -74,6 +75,20 @@ def register_exception_handlers(app):
         return JSONResponse(
             status_code=422,
             content={"detail": errors},
+        )
+
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        logger.warning(
+            "Rate limit exceeded",
+            path=str(request.url),
+            method=request.method,
+            detail=exc.detail,
+        )
+
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Try again later."},
         )
 
     @app.exception_handler(Exception)

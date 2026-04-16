@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react"
 import { setToast } from "../utils/toast"
 import type { ToastType } from "../utils/types"
+import { TOAST_DURATION } from "../utils/config"
 
 type Toast = {
   id: number
@@ -60,7 +61,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const showToast = (
     message: string,
     type: ToastType = "error",
-    duration: number = 3000
+    duration: number = TOAST_DURATION
   ) => {
     const id = Date.now()
 
