@@ -25,7 +25,7 @@ import {
   Compass,
 } from "lucide-react"
 
-import { getAnalytics } from "../api/urls"
+import { getAnalytics } from "../api/analytics"
 
 type StatItem = {
   name: string
@@ -60,7 +60,7 @@ export default function LinkAnalyticsPage() {
     try {
       const res = await getAnalytics(code!)
       setData(res)
-    } finally {
+    } catch { } finally {
       setLoading(false)
     }
   }
@@ -145,7 +145,7 @@ export default function LinkAnalyticsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-6 items-stretch"> 
+          <div className="grid grid-cols-12 gap-6 items-stretch">
 
             <div className="col-span-12 lg:col-span-4 flex flex-col gap-6">
 
@@ -173,7 +173,7 @@ export default function LinkAnalyticsPage() {
 
             <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col">
               <h3 className="text-sm font-bold text-gray-700 mb-6">Clicks Over Time</h3>
-              <div className="w-full flex-1 min-h-[280px]"> 
+              <div className="w-full flex-1 min-h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />

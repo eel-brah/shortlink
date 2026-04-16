@@ -33,7 +33,7 @@ export default function EditModal({ link, onClose, onUpdated }: any) {
       showToast("Link updated", "success")
       onUpdated(updated, link.short_code)
       onClose()
-    } catch (e) {
+    } catch {
     }
   }
 

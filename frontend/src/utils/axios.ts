@@ -3,7 +3,7 @@ import { toast } from "../utils/toast"
 import { refreshAccessToken } from "../api/auth"
 
 export const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: "/api/v1",
   withCredentials: true,
 })
 

@@ -6,8 +6,6 @@ import { useState } from "react"
 import { useToast } from "../context/ToastContext"
 import { registerUser } from "../api/auth"
 
-// 🔥 import your toast
-
 export default function RegisterPage() {
 
   const [username, setUsername] = useState("")
@@ -78,7 +76,7 @@ export default function RegisterPage() {
         window.location.href = "/login"
       }, 1000)
 
-    } catch (err: any) {
+    } catch {
     }
   }
 

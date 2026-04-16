@@ -28,6 +28,16 @@ from app.services.url_service import (
     update_url,
 )
 
+CustomCodePath = Annotated[
+    str,
+    Path(
+        min_length=CUSTOM_ALIAS_MIN,
+        max_length=CUSTOM_ALIAS_MAX,
+        pattern=r"^[a-zA-Z0-9]+$",
+    ),
+]
+
+
 logger = get_logger(__name__)
 router = APIRouter()
 
@@ -101,16 +111,6 @@ async def get_my_urls(
         total=result.get("total", 0),
     )
     return result
-
-
-CustomCodePath = Annotated[
-    str,
-    Path(
-        min_length=CUSTOM_ALIAS_MIN,
-        max_length=CUSTOM_ALIAS_MAX,
-        pattern=r"^[a-zA-Z0-9]+$",
-    ),
-]
 
 
 @router.put("/{short_code}", response_model=UrlResponse)

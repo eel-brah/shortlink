@@ -48,7 +48,7 @@ export default function LoginPage() {
 
       navigate("/") 
 
-    } catch (err) {
+    } catch (err: any) {
       showToast(err?.response?.data?.detail || "Login failed", "error")
     }
   }

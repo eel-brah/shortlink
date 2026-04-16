@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -40,9 +40,12 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 register_exception_handlers(app)
 
-# /api/v1
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
-app.include_router(user_router, prefix="/user", tags=["User"])
-app.include_router(url_router, prefix="/urls", tags=["Urls"])
-app.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+api_router = APIRouter(prefix="/api/v1")
+api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
+api_router.include_router(user_router, prefix="/user", tags=["User"])
+api_router.include_router(url_router, prefix="/urls", tags=["Urls"])
+api_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+
+
+app.include_router(api_router)
 app.include_router(redirect_router, tags=["Redirect"])

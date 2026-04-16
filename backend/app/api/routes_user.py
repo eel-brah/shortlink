@@ -53,7 +53,7 @@ async def update_my_profile(
         username=updated_user.username,
         email=updated_user.email,
         updated_fields=[
-            field for field in ["username", "email"] if getattr(data, field) is not None
+            field for field in ["username", "email", "password"] if getattr(data, field) is not None
         ],
     )
     return updated_user

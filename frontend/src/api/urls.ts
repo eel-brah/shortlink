@@ -32,11 +32,6 @@ export const deleteUrl = async (shortCode: string) => {
   await api.delete(`/urls/${shortCode}`)
 }
 
-export const getAnalytics = async (shortCode: string) => {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const res = await api.get(`/analytics/${shortCode}?tz=${tz}`)
-  return res.data
-}
 export const updateUrl = async (
   shortCode: string,
   data: {
@@ -50,7 +45,4 @@ export const updateUrl = async (
   return res.data
 }
 
-export const getGlobalAnalytics = async () => {
-  const res = await api.get("/analytics/global")
-  return res.data
-}
+

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import Navbar from "../components/Navbar"
 import Footer from "./Footer"
-import { getMyUrls, deleteUrl, getGlobalAnalytics } from "../api/urls"
+import { getMyUrls, deleteUrl } from "../api/urls"
 import EditModal from "../components/dashboard/EditModal"
 
 import {
@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { BASE_URL, DOMAIN } from "../utils/config"
 import { useNavigate } from "react-router-dom"
+import { getGlobalAnalytics } from "../api/analytics"
 
 export default function DashboardPage() {
   const [links, setLinks] = useState<any[]>([])
@@ -54,8 +55,7 @@ export default function DashboardPage() {
       }))
 
       setChartData(formatted)
-    } catch (e) {
-      console.error("analytics error", e)
+    } catch {
     }
   }
   const load = async () => {
@@ -74,8 +74,10 @@ export default function DashboardPage() {
   const totalPages = Math.ceil(total / size)
 
   const handleDelete = async (code: string) => {
-    await deleteUrl(code)
-    load()
+    try {
+      await deleteUrl(code)
+      load()
+    } catch { }
   }
 
   const handleUpdate = (updated: any, oldCode: string) => {

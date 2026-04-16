@@ -25,6 +25,8 @@ export default function ProfilePage() {
   const [repeatPassword, setRepeatPassword] = useState("")
 
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmUpdate, setConfirmUpdate] = useState<null | "profile" | "password">(null)
+
 
   useEffect(() => {
     const load = async () => {
@@ -33,7 +35,7 @@ export default function ProfilePage() {
         setInitialUser(user)
         setUsername(user.username)
         setEmail(user.email)
-        setAvatar(user.avatar_url || null) 
+        setAvatar(user.avatar_url || null)
         console.log(user.avatar_url)
       } catch { }
     }
@@ -94,6 +96,47 @@ export default function ProfilePage() {
     await deleteAvatar()
     setAvatar(null)
   }
+
+  const getProfileChanges = () => {
+    if (!initialUser) return []
+
+    const changes: string[] = []
+
+    if (username !== initialUser.username) {
+      changes.push(`Username: ${initialUser.username} → ${username}`)
+    }
+
+    if (email !== initialUser.email) {
+      changes.push(`Email: ${initialUser.email} → ${email}`)
+    }
+
+    return changes
+  }
+
+  const getPasswordIssues = () => {
+    const issues: string[] = []
+
+    if (!password) {
+      issues.push("Current password is required")
+    }
+
+    if (!newPassword) {
+      issues.push("New password is required")
+    }
+
+    if (newPassword && newPassword.length < 12) {
+      issues.push("New password must be at least 12 characters")
+    }
+
+    if (newPassword !== repeatPassword) {
+      issues.push("Passwords do not match")
+    }
+
+    return issues
+  }
+
+  const hasValidPasswordChange = getPasswordIssues().length === 0
+  const hasChanges = getProfileChanges().length > 0
 
   return (
     <>
@@ -172,7 +215,13 @@ export default function ProfilePage() {
 
               <div className="col-span-2 flex ">
                 <button
-                  onClick={handleProfileUpdate}
+                  onClick={() => {
+                    if (!hasChanges) {
+                      showToast("No changes to update", "info")
+                      return
+                    }
+                    setConfirmUpdate("profile")
+                  }}
                   className="bg-indigo-600 text-white px-5 py-2 rounded-xl font-semibold hover:bg-indigo-700"
                 >
                   Update Info
@@ -234,7 +283,7 @@ export default function ProfilePage() {
               </div>
 
               <button
-                onClick={handlePasswordUpdate}
+                onClick={() => setConfirmUpdate("password")}
                 className="bg-indigo-600 text-white px-5 py-2 rounded-xl font-semibold hover:bg-indigo-700"
               >
                 Update Password
@@ -266,8 +315,8 @@ export default function ProfilePage() {
         </div>
 
         {confirmDelete && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 w-[400px]">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-[400px] shadow-xl">
               <h3 className="text-lg font-semibold mb-2">
                 Confirm deletion
               </h3>
@@ -289,6 +338,87 @@ export default function ProfilePage() {
                   className="bg-red-600 text-white px-4 py-2 rounded-lg"
                 >
                   Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {confirmUpdate && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-[420px] shadow-xl">
+              <h3 className="text-lg font-semibold mb-3">
+                Confirm update
+              </h3>
+
+              {/* DETAILS */}
+              <div className="mb-5 text-sm text-gray-600 space-y-2">
+                {confirmUpdate === "profile" && (
+                  <>
+                    {getProfileChanges().length > 0 ? (
+                      <>
+                        <p className="font-medium text-gray-800">Changes:</p>
+                        <ul className="list-disc ml-5 space-y-1">
+                          {getProfileChanges().map((change, i) => (
+                            <li key={i}>{change}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <p>No changes detected.</p>
+                    )}
+                  </>
+                )}
+
+                {confirmUpdate === "password" && (
+                  <>
+                    {getPasswordIssues().length === 0 ? (
+                      <p>You are about to update your password.</p>
+                    ) : (
+                      <>
+                        <p className="font-medium text-red-600">Fix the following:</p>
+                        <ul className="list-disc ml-5 space-y-1 text-red-500">
+                          {getPasswordIssues().map((issue, i) => (
+                            <li key={i}>{issue}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* ACTIONS */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setConfirmUpdate(null)}
+                  className="text-gray-500"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (confirmUpdate === "profile") {
+                      await handleProfileUpdate()
+                    } else {
+                      await handlePasswordUpdate()
+                    }
+                    setConfirmUpdate(null)
+                    setPassword("")
+                    setNewPassword("")
+                    setRepeatPassword("")
+                  }}
+                  disabled={
+                    (confirmUpdate === "profile" && !hasChanges) ||
+                    (confirmUpdate === "password" && !hasValidPasswordChange)
+                  }
+                  className={`px-4 py-2 rounded-lg text-white ${(confirmUpdate === "profile" && !hasChanges) ||
+                    (confirmUpdate === "password" && !hasValidPasswordChange)
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-indigo-600"
+                    }`}
+                >
+                  Confirm
                 </button>
               </div>
             </div>
