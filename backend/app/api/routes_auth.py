@@ -4,7 +4,7 @@ from jose import jwt
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_201_CREATED
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_db
 from app.core.config import settings
 from app.core.exceptions.base import UnauthorizedError
 from app.core.logger import get_logger
@@ -14,7 +14,6 @@ from app.core.token import (
     create_refresh_token,
     is_refresh_token_blacklisted,
 )
-from app.models.user import User
 from app.schemas.url import RefreshTokenRequest
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.services.auth_service import (
@@ -148,6 +147,7 @@ async def refresh_token(
         secure=False,
         samesite="lax",
         path="/",
+        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
 
     logger.info("Tokens created successfully")

@@ -1,17 +1,38 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File,  UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_204_NO_CONTENT
 from app.api.deps import get_current_user, get_db
+from app.core.exceptions.base import NotFoundError
 from app.core.logger import get_logger
 from app.models.user import User
 from app.schemas.user import UserResponse, UserUpdate
 from app.services.user_service import (
+    delete_avatar_service,
     delete_user,
+    get_user,
     update_user,
+    upload_avatar_service,
 )
 
 logger = get_logger(__name__)
 router = APIRouter()
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_user_info(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user = await get_user(db, current_user.id)
+    if not user:
+        raise NotFoundError("User not found")
+    logger.info(
+        "Get user info",
+        user_id=current_user.id,
+        username=user.username,
+        email=user.email,
+    )
+    return user
 
 
 @router.put("/me", response_model=UserResponse)
@@ -45,3 +66,42 @@ async def delete_my_account(
         email=current_user.email,
     )
     return None
+
+
+@router.post("/me/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await upload_avatar_service(file, current_user.id, db)
+
+    logger.info(
+        "User avatar uploaded successfully",
+        user_id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+    )
+    return {
+        "message": "Avatar uploaded successfully",
+        "avatar_url": current_user.avatar_url,
+    }
+
+
+@router.delete("/me/avatar", status_code=HTTP_204_NO_CONTENT)
+async def delete_avatar(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+
+    if await delete_avatar_service(current_user.id, db):
+        logger.info(
+            "User avatar deleted successfully",
+            user_id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+        )
+    else:
+        logger.warning(
+            "Avatar reference cleared, but file deletion failed.",
+        )

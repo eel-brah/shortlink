@@ -32,7 +32,7 @@ COMMON_PASSWORDS = {
     "iloveyou",
     "monkey",
     "123456789",
-    # Add more
+    #TODO: Add more
 }
 
 
@@ -130,5 +130,6 @@ class UserResponse(BaseModel):
     username: Username
     email: EmailStr
     created_at: datetime
+    avatar_url: str | None
 
     model_config = ConfigDict(from_attributes=True)

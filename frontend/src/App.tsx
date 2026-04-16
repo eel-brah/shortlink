@@ -12,6 +12,7 @@ import { refreshAccessToken } from "./api/auth"
 import { PublicOnly, RequireAuth } from "./components/RequireAuth"
 import DashboardPage from "./components/DashboardPage"
 import LinkAnalyticsPage from "./components/LinkAnalyticsPage"
+import ProfilePage from "./components/ProfilePage"
 
 function App() {
   const { setAccessToken, setLoading } = useAuth()
@@ -64,6 +65,14 @@ function App() {
             <LinkAnalyticsPage />
           </RequireAuth>
         } />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
+        />
       </Routes>
     </>
   )

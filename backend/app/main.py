@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.exceptions.handlers import register_exception_handlers
@@ -31,6 +32,8 @@ app.add_middleware(
 )
 app.add_middleware(SecurityHeadersMiddleware)
 
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 register_exception_handlers(app)
 
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
