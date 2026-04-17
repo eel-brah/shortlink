@@ -1,7 +1,5 @@
 # 🔗 ShortLink
 
-> **Shorten your links, broaden your reach.** > Transform long, complex URLs into powerful marketing assets. Track clicks, manage performance, and engage your audience.
-
 ShortLink is a high-performance, full-stack URL shortening platform. It offers instant, secure link shortening with advanced features for authenticated users, including custom aliases, expiration dates, deep analytics, and rate-limiting. Built for speed, the redirection engine leverages Redis caching to ensure sub-100ms response times.
 
 ---
