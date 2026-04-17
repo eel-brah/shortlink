@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import Field, PostgresDsn, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +10,9 @@ class Settings(BaseSettings):
 
     APP_NAME: str = "ShortLink"
     DEBUG: bool = True
+
+    ALLOWED_ORIGINS: list[str] 
+    COOKIE_SAMESITE: Literal["lax", "none", "strict"] = "lax"
 
     DATABASE_URL: PostgresDsn = Field(repr=False)
     REDIS_URL: RedisDsn = Field(repr=False)

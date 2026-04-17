@@ -67,7 +67,7 @@ class UrlResponse(BaseModel):
     is_active: bool
     expires_at: datetime | None
     click_count: int
-    created_at: datetime | None #TODO
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

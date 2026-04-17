@@ -73,8 +73,8 @@ async def login(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # TODO: True (HTTPS)
-        samesite="lax",
+        secure=not settings.DEBUG,
+        samesite=settings.COOKIE_SAMESITE,
         path="/",
     )
 

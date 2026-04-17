@@ -33,7 +33,6 @@ class Url(Base):
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    # TODO:
     user: Mapped["User"] = relationship(back_populates="urls")
     clicks: Mapped[list["UrlClick"]] = relationship(
         back_populates="url", cascade="all, delete-orphan"
