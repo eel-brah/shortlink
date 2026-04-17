@@ -45,4 +45,7 @@ export const updateUrl = async (
   return res.data
 }
 
-
+export const checkAliasAvailability = async (alias: string) => {
+  const res = await fetch(`/urls/check-alias?alias=${alias}`);
+  return res.json(); 
+};

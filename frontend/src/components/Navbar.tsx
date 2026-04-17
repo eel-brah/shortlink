@@ -5,7 +5,7 @@ import { setAccessTokenGlobal } from "../utils/axios"
 import { logoutUser } from "../api/auth"
 
 import { useState, useEffect, useRef } from "react"
-import { User, LogOut, LayoutDashboard } from "lucide-react"
+import { User, LogOut, LayoutDashboard, Home, Tag } from "lucide-react"
 import { getMe } from "../api/user"
 import { getImageUrl } from "../utils/urls"
 
@@ -77,7 +77,7 @@ export default function Navbar({ isFixed = true }: NavbarProps) {
         className="text-2xl font-extrabold text-indigo-900 tracking-tight">ShortLink</button>
 
       <div className="hidden md:flex gap-8 items-center">
-        {navLink("/", "Features")}
+        {navLink("/", "Home")}
         {navLink("/pricing", "Pricing")}
         {accessToken && navLink("/dashboard", "Dashboard")}
       </div>
@@ -159,6 +159,28 @@ export default function Navbar({ isFixed = true }: NavbarProps) {
               <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-100 to-transparent" />
 
               <div className="p-2">
+                <div className="md:hidden">
+                  <button
+                    onClick={() => { navigate("/"); setOpen(false); }}
+                    className="group flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-gray-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-700 transition-all"
+                  >
+                    <div className="p-1.5 rounded-lg bg-gray-50 group-hover:bg-white transition-colors">
+                      <Home size={14} />
+                    </div>
+                    Home
+                  </button>
+                  <button
+                    onClick={() => { navigate("/pricing"); setOpen(false); }}
+                    className="group flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-gray-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-700 transition-all"
+                  >
+                    <div className="p-1.5 rounded-lg bg-gray-50 group-hover:bg-white transition-colors">
+                      <Tag size={14} />
+                    </div>
+                    Pricing
+                  </button>
+                  <div className="my-2 border-t border-gray-50" />
+                </div>
+
                 <button
                   onClick={() => { navigate("/dashboard"); setOpen(false); }}
                   className="group flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-gray-600 rounded-xl hover:bg-indigo-50 hover:text-indigo-700 transition-all"

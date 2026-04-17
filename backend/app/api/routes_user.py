@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 @router.get("/me", response_model=UserResponse)
-@limiter.limit("30/minute")
+@limiter.limit("40/minute")
 async def get_user_info(
     request: Request,
     db: AsyncSession = Depends(get_db),

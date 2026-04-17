@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
 
   const { showToast } = useToast()
+  
   const validate = () => {
     if (!username.trim()) {
       showToast("Username is required", "error")
@@ -58,7 +59,9 @@ export default function RegisterPage() {
   }
 
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: any) => {
+    if (e) e.preventDefault(); 
+    
     if (!validate()) return
 
     try {
@@ -81,16 +84,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#f6f7fb] overflow-hidden">
+    <div className="min-h-screen md:h-screen flex flex-col bg-[#f6f7fb] md:overflow-hidden">
 
       <Navbar isFixed={false} />
 
-      <main className="flex-1 flex items-center justify-center px-6">
+      <main className="flex-1 flex items-center justify-center px-4 py-8 md:py-0 md:px-6">
 
-        <div className="max-w-5xl w-full h-[85%] grid md:grid-cols-2 rounded-3xl overflow-hidden border border-gray-100 shadow-[0px_20px_50px_rgba(0,0,0,0.06)] bg-white">
+        <div className="max-w-5xl w-full h-auto md:h-[min(800px,85%)] grid md:grid-cols-2 rounded-3xl overflow-hidden border border-gray-100 shadow-[0px_20px_50px_rgba(0,0,0,0.06)] bg-white">
 
-          <div className="relative bg-[#3f47b2] text-white p-10 lg:p-16 flex flex-col justify-between overflow-hidden">
-
+          <div className="relative bg-[#3f47b2] text-white p-10 lg:p-16 hidden md:flex flex-col justify-between overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
               <div className="w-[140%] h-[140%] border border-white/20 rounded-full absolute" />
               <div className="w-[90%] h-[90%] border border-white/30 rounded-full absolute" />
@@ -98,14 +100,10 @@ export default function RegisterPage() {
             </div>
 
             <div className="relative z-10">
-              <h2 className="text-xl font-semibold mb-10 opacity-90">
-                ShortLink
-              </h2>
-
-              <h1 className="text-4xl lg:text-3xl font-bold leading-tight mb-8">
+              <h2 className="text-xl font-semibold mb-10 opacity-90">ShortLink</h2>
+              <h1 className="text-3xl lg:text-4xl font-bold leading-tight mb-8">
                 Architecting the flow of digital traffic.
               </h1>
-
               <p className="text-indigo-100/70 text-base leading-relaxed max-w-sm">
                 Join the platform that turns every click into a data-driven insight.
               </p>
@@ -115,90 +113,65 @@ export default function RegisterPage() {
               <div className="w-10 h-10 rounded-full bg-indigo-400/30 flex items-center justify-center">
                 <Insights className="text-white text-sm" />
               </div>
-
               <div>
-                <p className="text-[10px] font-black tracking-[0.2em] text-white/50">
-                  LIVE PULSE
-                </p>
-                <p className="text-sm font-bold">
-                  1.2M+ links architected this month
-                </p>
+                <p className="text-[10px] font-black tracking-[0.2em] text-white/50">LIVE PULSE</p>
+                <p className="text-sm font-bold">1.2M+ links architected</p>
               </div>
             </div>
           </div>
 
-          <div className="px-8 py-12 flex flex-col justify-center h-full overflow-hidden">
-
-            <h2 className="text-2xl font-bold mb-1">
-              Create your account
-            </h2>
-
+          <div className="px-6 py-10 md:px-12 flex flex-col justify-center bg-white">
+            <h2 className="text-2xl font-bold mb-1">Create your account</h2>
             <p className="text-gray-400 text-sm mb-6">
               Already have an account?{" "}
-              <Link to="/login" className="text-indigo-600 font-semibold">
-                Log In
-              </Link>
+              <Link to="/login" className="text-indigo-600 font-semibold">Log In</Link>
             </p>
 
-            <div className="space-y-4">
-
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-sm font-semibold text-gray-600">
-                  Username
-                </label>
-
+                <label className="text-sm font-semibold text-gray-600">Username</label>
                 <input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter your username"
-                  className="mt-2 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
+                  className="mt-1.5 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
                   bg-gray-100 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-600">
-                  Email Address
-                </label>
-
+                <label className="text-sm font-semibold text-gray-600">Email Address</label>
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="mt-2 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
+                  className="mt-1.5 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
                   bg-gray-100 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500/30"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-600">
-                  Password
-                </label>
-
+                <label className="text-sm font-semibold text-gray-600">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="mt-2 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
+                  className="mt-1.5 w-full h-[44px] rounded-xl px-4 text-sm outline-none transition 
                   bg-gray-100 border border-transparent focus:bg-white focus:ring-2 focus:ring-indigo-500/30"
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Minimum 8 characters
-                </p>
+                <p className="text-[11px] text-gray-400 mt-1">Minimum 12 characters</p>
               </div>
 
               <button
-                onClick={handleSubmit}
-                className="w-full mt-2 h-[44px] rounded-xl font-semibold text-white
+                type="submit" // Changed to type="submit"
+                className="w-full mt-2 h-[46px] rounded-xl font-semibold text-white
                 bg-gradient-to-r from-indigo-600 to-indigo-500
-                shadow-md hover:shadow-lg hover:scale-[0.98] active:scale-95
-                transition-all"
+                shadow-md hover:shadow-lg hover:scale-[0.99] active:scale-95 transition-all"
               >
                 Create Account
               </button>
-
-            </div>
+            </form>
           </div>
         </div>
       </main>
