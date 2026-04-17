@@ -58,6 +58,10 @@ export default function LandingPage() {
 
       const res = await shortenUrl(payload);
       setResult(res);
+
+      if (!accessToken) {
+        localStorage.setItem("pending_link_code", res.short_code);
+      }
       showToast("Link shortened successfully!", "success")
     } catch (err: any) {
     } finally {
@@ -317,7 +321,7 @@ export default function LandingPage() {
                   <h3 className="text-lg md:text-xl font-semibold mb-1">Track real-time analytics</h3>
                   <p className="text-sm opacity-80 max-w-md">See who's clicking, where they are, and what device they're using.</p>
                 </div>
-                <Link to="/register" className="bg-white text-indigo-700 px-6 py-3 rounded-full font-bold shadow hover:scale-105 transition text-sm w-full md:w-auto">
+                <Link to="/register?claim=true" className="bg-white text-indigo-700 px-6 py-3 rounded-full font-bold shadow hover:scale-105 transition text-sm w-full md:w-auto">
                   Sign up to track this link
                 </Link>
               </div>

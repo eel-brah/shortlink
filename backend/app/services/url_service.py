@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, update
 
@@ -130,8 +130,16 @@ async def update_url(
     if not url:
         raise NotFoundError(detail="Url not found")
 
-    if url.user_id != user_id:
+    if url.user_id is not None and url.user_id != user_id:
         raise ForbiddenError(detail="Not allowed to modify this URL")
+
+    if url.user_id is None:
+        if datetime.now(timezone.utc) - url.created_at > timedelta(minutes=10):
+            raise ForbiddenError(detail="Link is too old to be claimed")
+        url.user_id = user_id
+        await safe_commit(db)
+        await db.refresh(url)
+        return url
 
     if (
         data.original_url is None

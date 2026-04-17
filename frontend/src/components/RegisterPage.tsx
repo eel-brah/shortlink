@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
 
   const { showToast } = useToast()
-  
+
   const validate = () => {
     if (!username.trim()) {
       showToast("Username is required", "error")
@@ -60,8 +60,8 @@ export default function RegisterPage() {
 
 
   const handleSubmit = async (e: any) => {
-    if (e) e.preventDefault(); 
-    
+    if (e) e.preventDefault();
+
     if (!validate()) return
 
     try {
@@ -73,11 +73,13 @@ export default function RegisterPage() {
 
       await registerUser(data)
 
-      showToast("Account created successfully", "success")
+      const pendingCode = localStorage.getItem("pending_link_code");
+      if (pendingCode) showToast("Login to claim your link", "success")
+      else showToast("Account created successfully", "success")
 
       setTimeout(() => {
         window.location.href = "/login"
-      }, 1000)
+      }, 1800)
 
     } catch {
     }

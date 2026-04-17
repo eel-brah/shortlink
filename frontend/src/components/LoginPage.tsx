@@ -6,6 +6,7 @@ import { loginUser } from "../api/auth"
 import { useToast } from "../context/ToastContext"
 import { useAuth } from "../context/AuthContext"
 import { setAccessTokenGlobal } from "../utils/axios"
+import { updateUrl } from "../api/urls"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -46,10 +47,18 @@ export default function LoginPage() {
       setAccessToken(res.access_token)
       setAccessTokenGlobal(res.access_token)
 
-      showToast("Welcome back!", "success")
-
+      const pendingCode = localStorage.getItem("pending_link_code");
+      if (pendingCode) {
+        localStorage.removeItem("pending_link_code");
+        try {
+          await updateUrl(pendingCode, {});
+          showToast("Link added to your account!", "success");
+        } catch { }
+      }
+      else {
+        showToast("Welcome back!", "success")
+      }
       navigate("/")
-
     } catch (err: any) {
       showToast(err?.response?.data?.detail || "Login failed", "error")
     } finally {
@@ -58,14 +67,12 @@ export default function LoginPage() {
   }
 
   return (
-    // md:h-screen and md:overflow-hidden prevents desktop scrolling
     <div className="min-h-screen md:h-screen flex flex-col bg-[#f6f7fb] md:overflow-hidden">
       <Navbar isFixed={false} />
 
       <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 md:py-0">
         <div className="max-w-5xl w-full h-auto md:h-[min(700px,80%)] grid grid-cols-1 md:grid-cols-2 rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 shadow-[0px_30px_80px_rgba(0,0,0,0.08)] bg-white">
 
-          {/* Left Side - Visual Panel */}
           <div className="hidden md:flex relative bg-[#3f47b2] text-white p-10 lg:p-12 flex-col justify-between overflow-hidden">
             <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle,_rgba(255,255,255,0.6)_1px,_transparent_1px)] [background-size:18px_18px]" />
 
@@ -85,12 +92,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Right Side - Login Form */}
           <div className="p-8 sm:p-10 md:p-12 flex flex-col justify-center">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h2>
             <p className="text-gray-400 text-sm mb-8">Log in to manage your connections.</p>
 
-            {/* WRAPPED IN FORM FOR ENTER KEY SUPPORT */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">
