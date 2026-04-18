@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Link2, Calendar, Lock, Globe } from "lucide-react"
@@ -13,7 +13,7 @@ import {
 import Navbar from "./Navbar"
 import Footer from "./Footer"
 import { shortenUrl } from "../api/urls"
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { BASE_URL, DOMAIN } from "../utils/config";
 import { useAuth } from "../context/AuthContext";
@@ -97,8 +97,15 @@ export default function LandingPage() {
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
-  const primaryBtn =
-    "bg-indigo-600 text-white px-6 py-3 rounded-full font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-[0.97] active:scale-95 transition disabled:opacity-50 w-full md:w-auto"
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (location.state?.reset) {
+      resetForm()
+      navigate(".", { replace: true, state: {} })
+    }
+  }, [location.state])
 
   return (
     <div className="bg-[#f6f7fb] min-h-screen text-gray-900 overflow-x-hidden">
@@ -137,7 +144,9 @@ export default function LandingPage() {
                   className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm md:text-base"
                 />
               </div>
-              <button type="submit" disabled={loading} className={primaryBtn}>
+              <button type="submit" disabled={loading} className={
+                "bg-indigo-600 text-white px-6 py-3 rounded-full font-semibold flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:scale-[0.97] active:scale-95 transition disabled:opacity-50 w-full md:w-auto"
+              }>
                 {loading ? "Loading..." : "Shorten"}
                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </button>

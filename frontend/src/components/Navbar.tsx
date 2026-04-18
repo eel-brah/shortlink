@@ -30,14 +30,31 @@ export default function Navbar({ isFixed = true }: NavbarProps) {
 
   const positionClass = isFixed ? "fixed top-0" : "relative"
 
-  const navLink = (path: string, label: string) => {
+  const navLink = (
+    path: string,
+    label: string,
+    options?: { onClick?: () => void }
+  ) => {
     const active = location.pathname === path
+
+    const className = `text-sm font-semibold transition relative ${active
+      ? "text-indigo-700"
+      : "text-gray-500 hover:text-indigo-600"
+      }`
+
+    if (options?.onClick) {
+      return (
+        <button onClick={options.onClick} className={className}>
+          {label}
+          {active && (
+            <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-indigo-600 rounded" />
+          )}
+        </button>
+      )
+    }
+
     return (
-      <Link
-        to={path}
-        className={`text-sm font-semibold transition relative ${active ? "text-indigo-700" : "text-gray-500 hover:text-indigo-600"
-          }`}
-      >
+      <Link to={path} className={className}>
         {label}
         {active && (
           <span className="absolute -bottom-1 left-0 w-full h-[2px] bg-indigo-600 rounded" />
@@ -77,8 +94,12 @@ export default function Navbar({ isFixed = true }: NavbarProps) {
         className="text-2xl font-extrabold text-indigo-900 tracking-tight">ShortLink</button>
 
       <div className="hidden md:flex gap-8 items-center">
-        {navLink("/", "Home")}
+        {navLink("/", "Home", {
+          onClick: () => navigate("/", { state: { reset: true } }),
+        })}
+
         {navLink("/pricing", "Pricing")}
+
         {accessToken && navLink("/dashboard", "Dashboard")}
       </div>
 

@@ -69,7 +69,7 @@ export default function PricingPage() {
           </div>
 
           <div className="relative bg-white rounded-2xl p-6 md:p-8 border border-indigo-200 shadow-lg md:scale-[1.03] flex flex-col justify-between order-first md:order-none">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+            <div className="md:absolute md:-top-3 md:left-1/2 md:-translate-x-1/2 mb-3 md:mb-0 flex justify-center">
               <span className="bg-indigo-600 text-white text-[10px] px-3 py-1 rounded-full font-bold shadow uppercase tracking-wider">
                 Most Popular
               </span>
