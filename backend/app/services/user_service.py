@@ -8,6 +8,8 @@ import asyncio
 from pathlib import Path
 import uuid
 
+from app.utils.utils import normalize
+
 from ..models.user import User
 from ..schemas.user import UserUpdate
 from ..services.utils import safe_commit
@@ -22,14 +24,17 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdate):
     if not user:
         raise NotFoundError("User not found")
 
-    if data.username or data.email:
+    username = normalize(data.username)
+    email = normalize(data.email)
+
+    if username or email:
         conditions = []
 
-        if data.username:
-            conditions.append(User.username == data.username)
+        if username:
+            conditions.append(User.username == username)
 
-        if data.email:
-            conditions.append(User.email == data.email)
+        if email:
+            conditions.append(User.email == email)
 
         result = await db.execute(
             select(User).where(or_(*conditions), User.id != user_id)
@@ -37,9 +42,9 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdate):
         existing_user = result.scalar_one_or_none()
 
         if existing_user:
-            if data.username and existing_user.username == data.username:
+            if username and existing_user.username == username:
                 raise ConflictError("Username already exists")
-            if data.email and existing_user.email == data.email:
+            if email and existing_user.email == email:
                 raise ConflictError("Email already exists")
 
     if data.new_password and not data.password:
@@ -52,10 +57,10 @@ async def update_user(db: AsyncSession, user_id: int, data: UserUpdate):
         if data.new_password:
             user.password_hash = hash_password(data.new_password)
 
-    if data.username:
-        user.username = data.username
-    if data.email:
-        user.email = data.email
+    if username:
+        user.username = username
+    if email:
+        user.email = email
 
     await safe_commit(db)
     await db.refresh(user)

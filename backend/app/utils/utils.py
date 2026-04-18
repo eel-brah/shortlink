@@ -43,3 +43,6 @@ def parse_user_agent(user_agent_str: str | None):
             "browser": "Unknown",
             "os": "Unknown",
         }
+
+def normalize(value: str | None) -> str | None:
+    return value.strip().lower() if value else value
