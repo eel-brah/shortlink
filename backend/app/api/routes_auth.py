@@ -149,12 +149,11 @@ async def refresh_token(
 
     response.set_cookie(
         key="refresh_token",
-        value=refresh_token,
+        value=new_refresh,
         httponly=True,
         secure=not settings.DEBUG,
         samesite=settings.COOKIE_SAMESITE,
         path="/",
-        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
 
     logger.info("Tokens created successfully")
