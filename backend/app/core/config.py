@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     ALLOWED_ORIGINS: list[str] 
-    COOKIE_SAMESITE: Literal["lax", "none", "strict"] = "lax"
+    COOKIE_SAMESITE: Literal["lax", "none", "strict"]
 
     DATABASE_URL: PostgresDsn = Field(repr=False)
     REDIS_URL: RedisDsn = Field(repr=False)

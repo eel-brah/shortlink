@@ -76,6 +76,7 @@ async def login(
         secure=not settings.DEBUG,
         samesite=settings.COOKIE_SAMESITE,
         path="/",
+        max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
 
     logger.info(
@@ -148,10 +149,10 @@ async def refresh_token(
 
     response.set_cookie(
         key="refresh_token",
-        value=new_refresh,
+        value=refresh_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=not settings.DEBUG,
+        samesite=settings.COOKIE_SAMESITE,
         path="/",
         max_age=int(settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400),
     )
