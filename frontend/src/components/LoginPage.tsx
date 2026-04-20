@@ -47,17 +47,30 @@ export default function LoginPage() {
       setAccessToken(res.access_token)
       setAccessTokenGlobal(res.access_token)
 
-      const pendingCode = localStorage.getItem("pending_link_code");
+      const raw = localStorage.getItem("pending_link_code");
+      let pendingCode: string | null = null;
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (Date.now() < data.expiresAt) {
+            pendingCode = data.value;
+          } else {
+            localStorage.removeItem("pending_link_code");
+          }
+        } catch { }
+      }
+
       if (pendingCode) {
         localStorage.removeItem("pending_link_code");
+
         try {
           await updateUrl(pendingCode, {});
           showToast("Link added to your account!", "success");
         } catch { }
+      } else {
+        showToast("Welcome back!", "success");
       }
-      else {
-        showToast("Welcome back!", "success")
-      }
+
       navigate("/")
     } catch (err: any) {
       showToast(err?.response?.data?.detail || "Login failed", "error")

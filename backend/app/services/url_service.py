@@ -15,7 +15,7 @@ from ..core.exceptions.base import (
 )
 from app.models.url import Url
 from app.schemas.url import CUSTOM_ALIAS_MIN, RESERVED, UrlUpdate
-from app.services.cache_service import delete_cached_url, set_cached_url
+from app.services.cache_service import delete_cached_url, get_cached_url, set_cached_url
 from app.utils.shortener import encode_id
 
 
@@ -126,7 +126,6 @@ async def update_url(
 ) -> Url:
     result = await db.execute(select(Url).where(Url.short_code == short_code))
     url = result.scalar_one_or_none()
-
     if not url:
         raise NotFoundError(detail="Url not found")
 
@@ -172,12 +171,7 @@ async def update_url(
     await safe_commit(db)
     await db.refresh(url)
 
-    if url.is_active:
-        ttl = compute_ttl(url.expires_at)
-        if ttl > 0:
-            await set_cached_url(url.short_code, url.original_url, ttl)
-    else:
-        await delete_cached_url(url.short_code)
+    await delete_cached_url(url.short_code)
 
     return url
 

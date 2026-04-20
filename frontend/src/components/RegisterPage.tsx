@@ -73,9 +73,24 @@ export default function RegisterPage() {
 
       await registerUser(data)
 
-      const pendingCode = localStorage.getItem("pending_link_code");
-      if (pendingCode) showToast("Login to claim your link", "success")
-      else showToast("Account created successfully", "success")
+      const raw = localStorage.getItem("pending_link_code");
+      let pendingCode: string | null = null;
+      if (raw) {
+        try {
+          const data = JSON.parse(raw);
+          if (Date.now() < data.expiresAt) {
+            pendingCode = data.value;
+          } else {
+            localStorage.removeItem("pending_link_code");
+          }
+        } catch { }
+      }
+
+      if (pendingCode) {
+        showToast("Login to claim your link", "success");
+      } else {
+        showToast("Account created successfully", "success");
+      }
 
       setTimeout(() => {
         window.location.href = "/login"

@@ -60,8 +60,13 @@ export default function LandingPage() {
       setResult(res);
 
       if (!accessToken) {
-        localStorage.setItem("pending_link_code", res.short_code);
+        const data = {
+          value: res.short_code,
+          expiresAt: Date.now() + 10 * 60 * 1000
+        };
+        localStorage.setItem("pending_link_code", JSON.stringify(data));
       }
+
       showToast("Link shortened successfully!", "success")
     } catch (err: any) {
     } finally {
